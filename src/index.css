@@ -1,0 +1,192 @@
+body {
+  background-color: #0000aa;
+  color: #eeeeee;
+  font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  margin: 0;
+  font-size: 1.1rem;
+  scrollbar-width: none; /* For Firefox */
+}
+
+::-webkit-scrollbar {
+  display: none; /* For Chrome, Safari, and Opera */
+}
+
+body.terminal-mode {
+  background-color: #0d0d0d;
+  padding: 0;
+  align-items: flex-start;
+  justify-content: flex-start;
+  color: #d0d0d0;
+}
+
+.terminal-container {
+  padding: 1rem;
+}
+
+.text-editor {
+  height: 90dvh;
+}
+
+#root {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.installer-window {
+  background-color: #bbbbbb;
+  color: #000000;
+  border: 2px solid #eeeeee;
+  width: 80%;
+  min-width: 300px;
+  max-width: 700px;
+  min-height: 350px;
+  box-shadow: 5px 5px 0px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+.title-bar {
+  background-color: #0000aa;
+  color: #ffffff;
+  padding: 4px 8px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.content {
+  padding: 1.5rem;
+  flex-grow: 1;
+}
+
+.content p {
+  margin-top: 0;
+}
+
+.input-area {
+  display: flex;
+  flex-direction: column;
+  margin-top: 1rem;
+}
+
+.input-area label {
+  margin-bottom: 0.5rem;
+}
+
+.input-area input {
+  background-color: #eeeeee;
+  border: 1px solid #555555;
+  color: #000000;
+  font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+  font-size: 1.1rem;
+  padding: 5px;
+  outline: none;
+}
+
+.input-area input:focus {
+  background-color: #ffffff;
+  border-color: #000000;
+}
+
+.option-list {
+  background-color: #eeeeee;
+  border: 1px solid #555555;
+  margin-top: 1rem;
+  max-height: 150px;
+  overflow-y: auto;
+  outline: none;
+  scrollbar-width: none;
+}
+
+.option-list::-webkit-scrollbar {
+  display: none;
+}
+
+.option-item {
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.option-item.selected {
+  background-color: #0000aa;
+  color: #ffffff;
+}
+
+.option-list:focus .option-item.selected {
+  background-color: #0000aa;
+  color: #ffffff;
+}
+
+.partition-info {
+  background-color: #eeeeee;
+  border: 1px solid #555555;
+  padding: 0.5rem;
+  margin-top: 1rem;
+  scrollbar-width: none;
+}
+
+.partition-info::-webkit-scrollbar {
+  display: none;
+}
+
+.partition-info pre {
+  margin: 2px 0;
+  font-size: 1rem;
+  color: #333;
+}
+
+.error-message {
+  background-color: #aa0000;
+  color: #ffffff;
+  padding: 0.5rem 1rem;
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.button-bar {
+  text-align: center;
+  padding: 1rem;
+  background-color: #bbbbbb;
+  border-top: 1px solid #555;
+}
+
+.button-bar button {
+  background-color: #0000aa;
+  color: #ffffff;
+  border: 1px solid #ffffff;
+  padding: 5px 15px;
+  font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+  font-size: 1.1rem;
+  cursor: pointer;
+}
+
+.button-bar button:focus {
+  background-color: #ffffff;
+  color: #0000aa;
+}
+
+pre {
+  margin: 0;
+  padding: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word; 
+  color: #d0d0d0;
+}
+
+input.terminal-input {
+  background-color: transparent;
+  color: #d0d0d0;
+  border: none;
+  font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+  font-size: 1.1rem;
+  outline: none;
+  width: 70%;
+  caret-color: #d0d0d0;
+  padding: 0;
+}
