@@ -1,130 +1,70 @@
-import { useState, useEffect, useRef } from 'react';
-import { bootLines } from '../data/installData.js';
-import Editor from './Editor.jsx';
+import { useState, useEffect, useRef } from "react";
+import { fullBootLines } from "../data/installData.js";
+import Editor from "./Editor.jsx";
+import {
+  processCommand,
+  setFsNode,
+  getDirNode,
+  resolvePath,
+} from "../utils/commandLogic.js";
 
 const BOOT_DELAY_MS = 120;
 const EXIT_DELAY_MS = BOOT_DELAY_MS * 2;
 
 const createFileSystem = (userData) => ({
-  '/': {
-    'home': {
-      [userData.username || 'user']: {
-        'Documents': {},
-        'Downloads': {},
-        'README.txt': "Welcome!"
-      }
+  "/": {
+    home: {
+      [userData.username || "user"]: {
+        Documents: {},
+        Downloads: {},
+        "README.txt": "Welcome to your new Debian server!",
+        "script.sh": "#!/bin/bash\necho 'Hello world'",
+        "catatan.txt": "",
+      },
     },
-    'etc': {
-      'hostname': userData.hostname || 'debian',
-      'hosts': "127.0.0.1 localhost"
+    etc: {
+      hostname: userData.hostname || "debian",
+      hosts: "127.0.0.1 localhost",
     },
-    'root': {
-      '.bashrc': "..."
+    root: {
+      ".bashrc": "...",
     },
-    'var': { 
-      'log': {
-        'syslog': "system log"
-      } 
-    }
-  }
+    var: {
+      log: {
+        syslog: "system log [timestamp]...",
+        nginx: {
+          "error.log":
+            "2025/11/03 06:30:00 [error] 123#123: *1 connect() failed (111: Connection refused) while connecting to upstream...",
+        },
+      },
+    },
+    tmp: {
+      "penting.txt": "This is a very important file.",
+    },
+  },
 });
 
-const normalizePath = (path) => {
-  return '/' + path.split('/').filter(p => p).join('/') || '/';
-};
-
-const resolvePath = (current, target) => {
-  if (!target) return current;
-  if (target.startsWith('/')) {
-    return normalizePath(target);
-  }
-  
-  let parts = current.split('/').filter(p => p);
-  const targetParts = target.split('/').filter(p => p);
-
-  for (const part of targetParts) {
-    if (part === '..') {
-      if (parts.length > 0) {
-        parts.pop();
-      }
-    } else if (part !== '.') {
-      parts.push(part);
-    }
-  }
-  return '/' + parts.join('/') || '/';
-};
-
-const getDirNode = (path, fs) => {
-  const parts = path.split('/').filter(p => p);
-  let node = fs['/'];
-  try {
-    for (const part of parts) {
-      if (node[part] === undefined) return null;
-      node = node[part];
-    }
-    return node;
-  } catch (e) {
-    return null;
-  }
-};
-
-const getParentNode = (path, fs) => {
-  const parts = path.split('/').filter(p => p);
-  parts.pop();
-  let node = fs['/'];
-  for (const part of parts) {
-    node = node[part];
-  }
-  return node;
-};
-
-const setFsNode = (fs, path, value) => {
-  const parts = path.split('/').filter(p => p);
-  const fileName = parts.pop();
-  
-  let newFs = { ...fs };
-  let node = newFs['/'];
-
-  for (const part of parts) {
-    const newNode = { ...node[part] };
-    node[part] = newNode;
-    node = newNode;
-  }
-
-  node[fileName] = value;
-  return newFs;
-};
-
-const deleteFsNode = (fs, path) => {
-  const parts = path.split('/').filter(p => p);
-  const nodeName = parts.pop();
-  
-  let newFs = { ...fs };
-  let node = newFs['/'];
-
-  for (const part of parts) {
-    const newNode = { ...node[part] };
-    node[part] = newNode;
-    node = newNode;
-  }
-
-  delete node[nodeName];
-  return newFs;
-};
-
-
-function Terminal({ userData }) {
+function Terminal({ userData, skipBoot = false }) {
   const [history, setHistory] = useState([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
   const [isBooting, setIsBooting] = useState(true);
   const [isTerminated, setIsTerminated] = useState(false);
   const [fileSystem, setFileSystem] = useState(null);
-  const [currentDir, setCurrentDir] = useState('/');
-  const [editorState, setEditorState] = useState({ mode: 'none', filePath: '', content: '' });
-  
-  const homeDir = `/home/${userData.username || 'user'}`;
-  const initialPrompt = `${userData.username || 'user'}@${userData.hostname || 'debian'}:~$ `;
+  const [currentDir, setCurrentDir] = useState("/");
+  const [editorState, setEditorState] = useState({
+    mode: "none",
+    filePath: "",
+    content: "",
+  });
+
+  const [commandHistory, setCommandHistory] = useState([]);
+  const [historyIndex, setHistoryIndex] = useState(-1);
+
+  const homeDir = `/home/${userData.username || "user"}`;
+  const initialPrompt = `${userData.username || "user"}@${
+    userData.hostname || "debian"
+  }:~$ `;
   const [userPrompt, setUserPrompt] = useState(initialPrompt);
 
   const inputRef = useRef(null);
@@ -132,16 +72,28 @@ function Terminal({ userData }) {
   const loginPrompt = "debian login: ";
 
   useEffect(() => {
+    if (skipBoot) {
+      setHistory([
+        { text: "Thanks for attending this workshop by HIMA TRPL" },
+        { text: "Welcome to Debian GNU/Linux 12 (bookworm)!" },
+        { text: "debian login: ", prompt: true, type: "login" },
+      ]);
+      setIsBooting(false);
+      return;
+    }
+
     let lineIndex = 0;
     const interval = setInterval(() => {
-      if (lineIndex < bootLines.length) {
-        setHistory(prev => [...prev, { text: bootLines[lineIndex] }]);
+      if (lineIndex < fullBootLines.length) {
+        setHistory((prev) => [...prev, { text: fullBootLines[lineIndex] }]);
         lineIndex++;
       } else {
         clearInterval(interval);
-        setHistory(prev => [
+        setHistory((prev) => [
           ...prev,
-          { text: "debian login: ", prompt: true, type: 'login' }
+          { text: "Thanks for attending this workshop by HIMA TRPL" },
+          { text: "Welcome to Debian GNU/Linux 12 (bookworm)!" },
+          { text: "debian login: ", prompt: true, type: "login" },
         ]);
         setIsBooting(false);
       }
@@ -158,238 +110,246 @@ function Terminal({ userData }) {
 
   useEffect(() => {
     if (terminalRef.current) {
-        terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
     }
   }, [history]);
 
   const handleInput = (e) => {
-    if (e.key === 'Enter') {
-      const lastLine = history[history.length - 1];
-      let newHistory = [...history];
-      
-      const [command, ...args] = input.trim().split(' ');
+    switch (e.key) {
+      case "Enter": {
+        e.preventDefault();
 
-      if (loggedIn) {
-        newHistory[newHistory.length - 1] = { text: `${userPrompt}${input}` };
-        
-        switch (command) {
-          case 'dir':
-          case 'ls':
-            const targetPath = args[0] ? resolvePath(currentDir, args[0]) : currentDir;
-            const node = getDirNode(targetPath, fileSystem);
-            if (node && typeof node === 'object') {
-              const contents = Object.keys(node);
-              if (contents.length > 0) {
-                newHistory.push({ text: contents.join('  ') });
-              }
-            } else {
-              newHistory.push({ text: `ls: cannot access '${args[0] || ''}': No such file or directory` });
-            }
-            break;
-          
-          case 'cd':
-            const targetDir = args[0] ? resolvePath(currentDir, args[0]) : homeDir;
-            const dirNode = getDirNode(targetDir, fileSystem);
-            
-            if (dirNode && typeof dirNode === 'object') {
-              setCurrentDir(targetDir);
-              const newPrompt = `${userData.username || 'user'}@${userData.hostname || 'debian'}:${targetDir.replace(homeDir, '~')}$ `;
-              setUserPrompt(newPrompt);
-              newHistory.push({ text: newPrompt, prompt: true, type: 'command' });
-              setInput('');
-              setHistory(newHistory);
-              return;
-            } else {
-              newHistory.push({ text: `bash: cd: ${args[0]}: No such file or directory` });
-            }
-            break;
-            
-          case 'clear':
-            setHistory([{ text: userPrompt, prompt: true, type: 'command' }]);
-            setInput('');
+        const trimmedInput = input.trim();
+        if (trimmedInput !== "") {
+          setCommandHistory((prev) => [...prev, trimmedInput]);
+        }
+        setHistoryIndex(-1);
+
+        const lastLine = history[history.length - 1];
+        let newHistory = [...history];
+
+        const [command, ...args] = trimmedInput.split(" ");
+
+        if (loggedIn) {
+          newHistory[newHistory.length - 1] = { text: `${userPrompt}${input}` };
+
+          const currentState = {
+            fileSystem: fileSystem,
+            currentDir: currentDir,
+            homeDir: homeDir,
+            userData: userData,
+            userPrompt: userPrompt,
+          };
+
+          const result = processCommand(command, args, currentState);
+
+          if (result.history.length > 0) {
+            result.history.forEach((line) => newHistory.push({ text: line }));
+          }
+          setFileSystem(result.fileSystem);
+          setCurrentDir(result.currentDir);
+          setUserPrompt(result.userPrompt);
+
+          if (result.clear) {
+            setHistory([
+              { text: result.userPrompt, prompt: true, type: "command" },
+            ]);
+            setInput("");
             return;
-            
-          case 'exit':
+          }
+
+          if (result.exit) {
             setLoggedIn(false);
             setIsTerminated(true);
-            newHistory.push({ text: "logout" });
-            
             const creditLines = [
               { text: "[  OK  ] User session ended." },
               { text: "Connection to debian closed." },
               { text: " " },
-              { text: "This project was made by Dzadafa and Danipion under HIMA TRPL." },
-              { text: "[ Process terminated. Refresh the page to restart. ]", type: 'terminated' }
+              {
+                text: "This project was made by Dzadafa and Danipion under HIMA TRPL.",
+              },
+              {
+                text: "[ Process terminated. Refresh the page to restart. ]",
+                type: "terminated",
+              },
             ];
-
             const printCreditLines = (index) => {
               if (index >= creditLines.length) return;
               setTimeout(() => {
-                setHistory(prev => [...prev, creditLines[index]]);
+                setHistory((prev) => [...prev, creditLines[index]]);
                 printCreditLines(index + 1);
               }, EXIT_DELAY_MS);
             };
-            
             printCreditLines(0);
             setHistory(newHistory);
-            setInput('');
+            setInput("");
             return;
-            
-          case 'mkdir':
-            const dirName = args[0];
-            if (!dirName) {
-              newHistory.push({ text: `mkdir: missing operand` });
-              break;
-            }
-            const newDirPath = resolvePath(currentDir, dirName);
-            const parentPath = newDirPath.substring(0, newDirPath.lastIndexOf('/')) || '/';
-            const newDirName = newDirPath.substring(newDirPath.lastIndexOf('/') + 1);
-            
-            const parentNode = getDirNode(parentPath, fileSystem);
-            if (!parentNode || typeof parentNode === 'string') {
-              newHistory.push({ text: `mkdir: cannot create directory ‘${dirName}’: No such file or directory` });
-              break;
-            }
-            if (parentNode[newDirName]) {
-              newHistory.push({ text: `mkdir: cannot create directory ‘${dirName}’: File exists` });
-              break;
-            }
-            setFileSystem(setFsNode(fileSystem, newDirPath, {}));
-            break;
+          }
 
-          case 'touch':
-            const fileName = args[0];
-            if (!fileName) {
-              newHistory.push({ text: `touch: missing file operand` });
-              break;
-            }
-            const newFilePath = resolvePath(currentDir, fileName);
-            const fileParentPath = newFilePath.substring(0, newFilePath.lastIndexOf('/')) || '/';
-            const newFileName = newFilePath.substring(newFilePath.lastIndexOf('/') + 1);
-            
-            const fileParentNode = getDirNode(fileParentPath, fileSystem);
-            if (!fileParentNode || typeof fileParentNode === 'string') {
-              newHistory.push({ text: `touch: cannot touch ‘${fileName}’: No such file or directory` });
-              break;
-            }
-            if (fileParentNode[newFileName] === undefined) {
-              setFileSystem(setFsNode(fileSystem, newFilePath, ""));
-            }
-            break;
-
-          case 'nano':
-          case 'vi':
-            const filePath = args[0] ? resolvePath(currentDir, args[0]) : null;
-            if (!filePath) {
-              newHistory.push({ text: `${command}: missing file operand` });
-              break;
-            }
-            
-            const fileNode = getDirNode(filePath, fileSystem);
-            if (fileNode && typeof fileNode === 'object') {
-              newHistory.push({ text: `bash: ${command}: ${args[0]}: Is a directory` });
-              break;
-            }
-            
-            const fileContent = (fileNode && typeof fileNode === 'string') ? fileNode : "";
-            setEditorState({ mode: command, filePath: filePath, content: fileContent });
+          if (result.editorState) {
+            setEditorState(result.editorState);
+            setHistory(newHistory);
+            setInput("");
             return;
+          }
 
-          case 'cat':
-            const catPath = args[0] ? resolvePath(currentDir, args[0]) : null;
-            if (!catPath) {
-                newHistory.push({ text: `cat: missing file operand` });
-                break;
-            }
-            const catNode = getDirNode(catPath, fileSystem);
-            if (catNode === null) {
-                newHistory.push({ text: `cat: ${args[0]}: No such file or directory` });
-            } else if (typeof catNode === 'object') {
-                newHistory.push({ text: `cat: ${args[0]}: Is a directory` });
-            } else {
-                newHistory.push({ text: catNode });
-            }
-            break;
-
-          case 'rm':
-            const rmPath = args[0] ? resolvePath(currentDir, args[0]) : null;
-            if (!rmPath) {
-                newHistory.push({ text: `rm: missing operand` });
-                break;
-            }
-            const rmNode = getDirNode(rmPath, fileSystem);
-            if (rmNode === null) {
-                newHistory.push({ text: `rm: cannot remove '${args[0]}': No such file or directory` });
-            } else if (typeof rmNode === 'object') {
-                newHistory.push({ text: `rm: cannot remove '${args[0]}': Is a directory` });
-            } else {
-                setFileSystem(deleteFsNode(fileSystem, rmPath));
-            }
-            break;
-
-          case 'rmdir':
-            const rmdirPath = args[0] ? resolvePath(currentDir, args[0]) : null;
-            if (!rmdirPath) {
-                newHistory.push({ text: `rmdir: missing operand` });
-                break;
-            }
-            const rmdirNode = getDirNode(rmdirPath, fileSystem);
-            if (rmdirNode === null) {
-                newHistory.push({ text: `rmdir: failed to remove '${args[0]}': No such file or directory` });
-            } else if (typeof rmdirNode === 'string') {
-                newHistory.push({ text: `rmdir: failed to remove '${args[0]}': Not a directory` });
-            } else if (Object.keys(rmdirNode).length > 0) {
-                newHistory.push({ text: `rmdir: failed to remove '${args[0]}': Directory not empty` });
-            } else {
-                setFileSystem(deleteFsNode(fileSystem, rmdirPath));
-            }
-            break;
-            
-          case '':
-            break;
-
-          default:
-            newHistory.push({ text: `bash: command not found: ${command}` });
-        }
-        
-        newHistory.push({ text: userPrompt, prompt: true, type: 'command' });
-
-      } else {
-        newHistory[newHistory.length - 1] = { text: `${loginPrompt}${input}` };
-        if (input === userData.username) {
-          const newFs = createFileSystem(userData);
-          setFileSystem(newFs);
-          setCurrentDir(homeDir);
-          setUserPrompt(initialPrompt);
-          newHistory.push({ text: `Welcome, ${userData.username}!` });
-          newHistory.push({ text: userPrompt, prompt: true, type: 'command' });
-          setLoggedIn(true);
+          newHistory.push({
+            text: result.userPrompt,
+            prompt: true,
+            type: "command",
+          });
         } else {
-          newHistory.push({ text: "Login incorrect" });
-          newHistory.push({ text: loginPrompt, prompt: true, type: 'login' });
+          newHistory[newHistory.length - 1] = {
+            text: `${loginPrompt}${input}`,
+          };
+          if (input === userData.username) {
+            const newFs = createFileSystem(userData);
+            setFileSystem(newFs);
+            setCurrentDir(homeDir);
+            setUserPrompt(initialPrompt);
+
+            newHistory = [
+              newHistory[newHistory.length - 1],
+              { text: `Welcome, ${userData.username}!` },
+              { text: userPrompt, prompt: true, type: "command" },
+            ];
+
+            setLoggedIn(true);
+          } else {
+            newHistory.push({ text: "Login incorrect" });
+            newHistory.push({ text: loginPrompt, prompt: true, type: "login" });
+          }
         }
+
+        setHistory(newHistory);
+        setInput("");
+        break;
       }
-      
-      setHistory(newHistory);
-      setInput('');
+
+      case "ArrowUp": {
+        e.preventDefault();
+        if (commandHistory.length > 0) {
+          let newIndex;
+          if (historyIndex === -1) {
+            newIndex = commandHistory.length - 1;
+          } else {
+            newIndex = Math.max(0, historyIndex - 1);
+          }
+          setHistoryIndex(newIndex);
+          setInput(commandHistory[newIndex]);
+        }
+        break;
+      }
+
+      case "ArrowDown": {
+        e.preventDefault();
+        if (historyIndex !== -1) {
+          if (historyIndex === commandHistory.length - 1) {
+            setHistoryIndex(-1);
+            setInput("");
+          } else {
+            const newIndex = historyIndex + 1;
+            setHistoryIndex(newIndex);
+            setInput(commandHistory[newIndex]);
+          }
+        }
+        break;
+      }
+
+      case "Tab": {
+        e.preventDefault();
+        if (!loggedIn) break;
+
+        const allCommands = [
+          "ls",
+          "cd",
+          "pwd",
+          "mkdir",
+          "touch",
+          "cp",
+          "mv",
+          "rm",
+          "rmdir",
+          "nano",
+          "vi",
+          "cat",
+          "less",
+          "chmod",
+          "chown",
+          "apt",
+          "help",
+          "clear",
+          "exit",
+        ];
+
+        const parts = input.split(" ");
+        const currentWord = parts[parts.length - 1];
+        const isCommand = parts.length === 1;
+
+        let possibilities = [];
+        let prefix = "";
+        let partial = currentWord;
+
+        if (isCommand) {
+          possibilities = allCommands;
+        } else {
+          prefix = currentWord.substring(0, currentWord.lastIndexOf("/") + 1);
+          partial = currentWord.substring(currentWord.lastIndexOf("/") + 1);
+
+          const targetDir = resolvePath(currentDir, prefix || ".");
+          const dirNode = getDirNode(targetDir, fileSystem);
+
+          if (dirNode && typeof dirNode === "object") {
+            possibilities = Object.keys(dirNode);
+          }
+        }
+
+        const matches = possibilities.filter((item) =>
+          item.startsWith(partial)
+        );
+
+        if (matches.length === 1) {
+          const match = matches[0];
+          parts[parts.length - 1] = prefix + match;
+
+          const nodePath = resolvePath(currentDir, prefix + match);
+          const node = getDirNode(nodePath, fileSystem);
+          if (node && typeof node === "object") {
+            setInput(parts.join(" ") + "/");
+          } else {
+            setInput(parts.join(" ") + " ");
+          }
+        } else if (matches.length > 1) {
+          let newHistory = [...history];
+          newHistory[newHistory.length - 1] = { text: `${userPrompt}${input}` };
+          newHistory.push({ text: matches.join("  ") });
+          newHistory.push({ text: userPrompt, prompt: true, type: "command" });
+          setHistory(newHistory);
+        }
+
+        break;
+      }
+
+      default:
+        break;
     }
   };
 
   const handleEditorExit = (newContent) => {
     const { filePath } = editorState;
     setFileSystem(setFsNode(fileSystem, filePath, newContent));
-    
-    setHistory(prev => [
-        ...prev,
-        { text: `File "${filePath}" saved.` },
-        { text: userPrompt, prompt: true, type: 'command' }
+
+    setHistory((prev) => [
+      ...prev,
+      { text: `File "${filePath}" saved.` },
+      { text: userPrompt, prompt: true, type: "command" },
     ]);
-    setEditorState({ mode: 'none', filePath: '', content: '' });
+    setEditorState({ mode: "none", filePath: "", content: "" });
   };
 
   const focusInput = () => {
     const selection = window.getSelection();
-    if (selection.type === 'Range') {
+    if (selection.type === "Range") {
       return;
     }
     if (!isBooting && inputRef.current) {
@@ -397,9 +357,9 @@ function Terminal({ userData }) {
     }
   };
 
-  if (editorState.mode !== 'none') {
+  if (editorState.mode !== "none") {
     return (
-      <Editor 
+      <Editor
         mode={editorState.mode}
         filePath={editorState.filePath}
         initialContent={editorState.content}
@@ -409,19 +369,16 @@ function Terminal({ userData }) {
   }
 
   const lastLine = history.length > 0 ? history[history.length - 1] : {};
-  const showInlineInput = !isTerminated && lastLine.prompt && (lastLine.type === 'command' || lastLine.type === 'login');
+  const showInlineInput =
+    !isTerminated &&
+    lastLine.prompt &&
+    (lastLine.type === "command" || lastLine.type === "login");
 
   return (
-    <div 
-      ref={terminalRef} 
-      onClick={focusInput} 
-      className="terminal-container"
-    >
+    <div ref={terminalRef} onClick={focusInput} className="terminal-container">
       {history.map((line, index) => (
         <div key={index} className="terminal-history-line">
-          <pre 
-            className={line.type === 'terminated' ? 'terminated-text' : ''}
-          >
+          <pre className={line.type === "terminated" ? "terminated-text" : ""}>
             {line.text}
           </pre>
           {showInlineInput && index === history.length - 1 && (
@@ -433,6 +390,10 @@ function Terminal({ userData }) {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleInput}
               autoFocus
+              autoCapitalize="none"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck="false"
             />
           )}
         </div>

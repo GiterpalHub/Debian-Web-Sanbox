@@ -17,7 +17,7 @@ export const fakeSystemInstallLogs = [
   "Setting up timezone data...",
   "Generating locales (en_US.UTF-8)...",
   "Locales generated.",
-  "Base system installation complete."
+  "Base system installation complete.",
 ];
 
 export const fakeGrubInstallLogs = [
@@ -29,7 +29,7 @@ export const fakeGrubInstallLogs = [
   "Found linux image: /boot/vmlinuz-6.1.0-20-amd64",
   "Found initrd image: /boot/initrd.img-6.1.0-20-amd64",
   "Warning: os-prober will not beP run to detect other bootable partitions.",
-  "done"
+  "done",
 ];
 
 export const fakeFinalConfigLogs = [
@@ -50,19 +50,52 @@ export const fakeFinalConfigLogs = [
   "done",
 ];
 
-export const bootLines = [
-  "Loading, please wait...",
-  "[  0.218540] pci 0000:00:07.0: D-state_change event received",
-  "[  0.220133] pci 0000:00:03.0: D-state_change event received",
-  "[  1.332410] EXT4-fs (sda1): mounted filesystem with ordered data mode. Opts: (null)",
-  "Starting systemd-udevd...",
-  "Started Journal Service.",
-  "Finished Create Volatile Files and Directories.",
-  "Starting Network Name Resolution...",
-  "Reached target Network.",
-  "Thanks for attending this workshop by HIMA TRPL",
+export const fullBootLines = [
+  "Linux version 6.1.0-20-amd64 (debian-kernel@lists.debian.org) ...",
+  "[    0.000000] DMI: VirtualBox/VirtualBox, BIOS VirtualBox 12/01/2006",
+  "[    0.011481] pci 0000:00:00.0: [8086:1237] PC bridge",
+  "[    0.012460] pci 0000:00:01.0: [8086:7000] ISA bridge",
+  "[    0.013444] pci 0000:00:02.0: [8086:7111] VGA controller",
+  "[    0.014421] pci 0000:00:03.0: [80ee:beef] ACPI device",
+  "[    0.015396] pci 0000:00:04.0: [8086:7010] IDE interface",
+  "[    0.016373] pci 0000:00:05.0: [8086:100e] Ethernet controller",
+  "[    0.017351] pci 0000:00:06.0: [8086:2829] SATA controller",
+  "[    0.018330] pci 0000:00:07.0: [8086:7113] USB controller",
+  "[    0.218540] pci 0000:00:07.0: D-state_change event received",
+  "[    0.220133] pci 0000:00:03.0: D-state_change event received",
+  "[    0.835410] scsi host0: ata_piix",
+  "[    0.837412] scsi host1: ata_piix",
+  "[    0.840455] ata1: PATA max MWDMA2 cmd 0x1f0 ctl 0x3f6 irq 14",
+  "[    0.841457] ata2: PATA max MWDMA2 cmd 0x170 ctl 0x376 irq 15",
+  "[    0.998510] ata1.00: ATA-8: VBOX HARDDISK, 1.0, max UDMA/133",
+  "[    0.999512] ata1.00: 25165824 sectors, 12.0 GiB, CHS 16383/16/63",
+  "[    1.000515] ata1.00: configured for MWDMA2",
+  "[    1.002519] scsi 0:0:0:0: Direct-Access     ATA      VBOX HARDDISK    1.0  PQ: 0 ANSI: 5",
+  "[    1.004523] sd 0:0:0:0: [sda] 25165824 512-byte logical blocks: (12.0 GiB/11.0 TiB)",
+  "[    1.005526] sd 0:0:0:0: [sda] Write Protect is off",
+  "[    1.006528] sd 0:0:0:0: [sda] Mode Sense: 00 3a 00 00",
+  "[    1.008533] sd 0:0:0:0: [sda] Write cache: enabled, read cache: enabled, doesn't support DPO or FUA",
+  "[    1.011539]  sda: sda1 sda2 < sda5 >",
+  "[    1.013543] sd 0:0:0:0: [sda] Attached SCSI disk",
+  "[    1.332410] EXT4-fs (sda1): mounted filesystem with ordered data mode. Opts: (null)",
+  "[    1.451234] systemd[1]: Inserted module 'autofs4'",
+  "[    1.460123] systemd[1]: systemd 252.22-1~deb12u1 running in system mode",
+  "[    1.462125] systemd[1]: Detected architecture x86-64.",
   "Welcome to Debian GNU/Linux 12 (bookworm)!",
-  "Debian GNU/Linux 12 debian tty1"
+  "[  OK  ] Reached target Basic System.",
+  "[  OK  ] Started systemd-udevd.",
+  "[  OK  ] Started Journal Service.",
+  "[  OK  ] Finished Create Volatile Files and Directories.",
+  "[  OK  ] Starting Network Name Resolution...",
+  "[  OK  ] Reached target Network.",
+  "[  OK  ] Reached target Sockets.",
+  "[  OK  ] Reached target Timers.",
+  "Starting systemd-logind.service...",
+  "Starting NetworkManager.service...",
+  "[  OK  ] Started systemd-logind.service.",
+  "[  OK  ] Started NetworkManager.service.",
+  "[  OK  ] Reached target Network is Online.",
+  "Debian GNU/Linux 12 debian tty1",
 ];
 
 export const installSteps = [
@@ -72,15 +105,22 @@ export const installSteps = [
     type: "options",
     options: ["English", "Indonesian", "French", "German", "Spanish"],
     default: ["English", "Indonesian"],
-    error: "Selected language isn't available. Please select 'English' or 'Indonesian'."
+    error:
+      "Selected language isn't available. Please select 'English' or 'Indonesian'.",
   },
   {
     title: "Debian Installer",
     text: "Select your location.",
     type: "options",
-    options: ["United States", "Indonesia", "United Kingdom", "Canada", "Other"],
+    options: [
+      "United States",
+      "Indonesia",
+      "United Kingdom",
+      "Canada",
+      "Other",
+    ],
     default: ["United States", "Indonesia"],
-    error: "Selected location isn't available."
+    error: "Selected location isn't available.",
   },
   {
     title: "Debian Installer",
@@ -88,7 +128,7 @@ export const installSteps = [
     type: "options",
     options: ["American English", "British English", "Canadian French"],
     default: ["American English"],
-    error: "Selected keyboard layout isn't available."
+    error: "Selected keyboard layout isn't available.",
   },
   {
     title: "Configuring Network",
@@ -96,7 +136,7 @@ export const installSteps = [
     type: "input",
     prompt: "Hostname:",
     key: "hostname",
-    default: "debian"
+    default: "debian",
   },
   {
     title: "Set up users",
@@ -104,7 +144,7 @@ export const installSteps = [
     type: "input",
     prompt: "Full name:",
     key: "fullname",
-    default: "User"
+    default: "User",
   },
   {
     title: "Set up users",
@@ -112,34 +152,34 @@ export const installSteps = [
     type: "input",
     prompt: "Username:",
     key: "username",
-    default: "user"
+    default: "user",
   },
   {
     title: "[!!] Partition disks",
     text: "This is an overview of your currently configured partitions...",
-    type: "partitionMenu"
+    type: "partitionMenu",
   },
   {
     title: "Installing System",
     text: "Installing the base system... (this is simulated)",
     type: "installing",
-    logKey: "system"
+    logKey: "system",
   },
   {
     title: "Installing GRUB",
     text: "Installing GRUB boot loader... (this is simulated)",
     type: "installing",
-    logKey: "grub"
+    logKey: "grub",
   },
   {
     title: "Running Installation...",
     text: "This may take a moment. Running final configurations...",
     type: "installing",
-    logKey: "finalConfig"
+    logKey: "finalConfig",
   },
   {
     title: "Installation Complete",
     text: "Installation is complete. Press 'Continue' to reboot.",
-    type: "info"
-  }
+    type: "info",
+  },
 ];
