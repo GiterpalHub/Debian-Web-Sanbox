@@ -44,6 +44,51 @@ const createFileSystem = (userData) => ({
   },
 });
 
+const getInitialChallengeTasks = (homeDir) => [
+  {
+    id: 1,
+    text: "Create a directory 'projects' in your home.",
+    completed: false,
+    check: (fs) => {
+      const node = getDirNode(`${homeDir}/projects`, fs);
+      return node && typeof node === "object";
+    },
+  },
+  {
+    id: 2,
+    text: "Navigate into the 'projects' directory.",
+    completed: false,
+    check: (fs, cd) => cd === `${homeDir}/projects`,
+  },
+  {
+    id: 3,
+    text: "Create a file 'mission.txt'.",
+    completed: false,
+    check: (fs) => getDirNode(`${homeDir}/projects/mission.txt`, fs) !== null,
+  },
+  {
+    id: 4,
+    text: "Write 'I did it!' into 'mission.txt'.",
+    completed: false,
+    check: (fs) =>
+      getDirNode(`${homeDir}/projects/mission.txt`, fs) === "I did it!",
+  },
+  {
+    id: 5,
+    text: "Move 'mission.txt' to your 'Documents' folder.",
+    completed: false,
+    check: (fs) =>
+      getDirNode(`${homeDir}/projects/mission.txt`, fs) === null &&
+      getDirNode(`${homeDir}/Documents/mission.txt`, fs) === "I did it!",
+  },
+  {
+    id: 6,
+    text: "Delete the (now empty) 'projects' directory.",
+    completed: false,
+    check: (fs) => getDirNode(`${homeDir}/projects`, fs) === null,
+  },
+];
+
 function Terminal({ userData, skipBoot = false }) {
   const [history, setHistory] = useState([]);
   const [input, setInput] = useState("");
@@ -58,14 +103,52 @@ function Terminal({ userData, skipBoot = false }) {
     content: "",
   });
 
+  const [isChallengeMode, setIsChallengeMode] = useState(false);
+  const homeDir = `/home/${userData.username || "user"}`;
+  const [challengeTasks, setChallengeTasks] = useState(
+    getInitialChallengeTasks(homeDir)
+  );
+
   const [commandHistory, setCommandHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
 
-  const homeDir = `/home/${userData.username || "user"}`;
   const initialPrompt = `${userData.username || "user"}@${
     userData.hostname || "debian"
   }:~$ `;
   const [userPrompt, setUserPrompt] = useState(initialPrompt);
+
+  const checkChallengeProgress = (currentFs, currentDir) => {
+    if (!isChallengeMode) return;
+
+    let allDone = true;
+    const newTasks = challengeTasks.map((task) => {
+      if (task.completed) return task;
+
+      const isCompleted = task.check(currentFs, currentDir, homeDir);
+      if (!isCompleted) allDone = false;
+
+      return { ...task, completed: isCompleted };
+    });
+
+    setChallengeTasks(newTasks);
+
+    if (allDone) {
+      setTimeout(G(), 500);
+    }
+  };
+
+  const G = () => {
+    setHistory((prev) => [
+      ...prev,
+      { text: "----------------------------------------" },
+      { text: "🎉 CHALLENGE COMPLETE! Great job! 🎉" },
+      { text: "----------------------------------------" },
+      { text: userPrompt, prompt: true, type: "command" },
+    ]);
+    setIsChallengeMode(false);
+
+    setChallengeTasks(getInitialChallengeTasks(homeDir));
+  };
 
   const inputRef = useRef(null);
   const terminalRef = useRef(null);
@@ -149,6 +232,12 @@ function Terminal({ userData, skipBoot = false }) {
           setFileSystem(result.fileSystem);
           setCurrentDir(result.currentDir);
           setUserPrompt(result.userPrompt);
+          if (result.startChallenge) {
+            setIsChallengeMode(true);
+            setChallengeTasks(getInitialChallengeTasks(homeDir));
+          }
+
+          checkChallengeProgress(result.fileSystem, result.currentDir);
 
           if (result.clear) {
             setHistory([
@@ -337,7 +426,8 @@ function Terminal({ userData, skipBoot = false }) {
 
   const handleEditorExit = (newContent) => {
     const { filePath } = editorState;
-    setFileSystem(setFsNode(fileSystem, filePath, newContent));
+    const newFs = setFsNode(fileSystem, filePath, newContent);
+    setFileSystem(newFs);
 
     setHistory((prev) => [
       ...prev,
@@ -345,6 +435,7 @@ function Terminal({ userData, skipBoot = false }) {
       { text: userPrompt, prompt: true, type: "command" },
     ]);
     setEditorState({ mode: "none", filePath: "", content: "" });
+    checkChallengeProgress(newFs, currentDir);
   };
 
   const focusInput = () => {
@@ -375,30 +466,53 @@ function Terminal({ userData, skipBoot = false }) {
     (lastLine.type === "command" || lastLine.type === "login");
 
   return (
-    <div ref={terminalRef} onClick={focusInput} className="terminal-container">
-      {history.map((line, index) => (
-        <div key={index} className="terminal-history-line">
-          <pre className={line.type === "terminated" ? "terminated-text" : ""}>
-            {line.text}
-          </pre>
-          {showInlineInput && index === history.length - 1 && (
-            <input
-              ref={inputRef}
-              type="text"
-              className="terminal-input"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={handleInput}
-              autoFocus
-              autoCapitalize="none"
-              autoComplete="off"
-              autoCorrect="off"
-              spellCheck="false"
-            />
-          )}
+    <>
+      {isChallengeMode && (
+        <div className="challenge-card">
+          <h4>Workshop Challenge</h4>
+          <ul className="challenge-list">
+            {challengeTasks.map((task) => (
+              <li
+                key={task.id}
+                className={`task-item ${task.completed ? "completed" : ""}`}
+              >
+                {task.text}
+              </li>
+            ))}
+          </ul>
         </div>
-      ))}
-    </div>
+      )}
+      <div
+        ref={terminalRef}
+        onClick={focusInput}
+        className="terminal-container"
+      >
+        {history.map((line, index) => (
+          <div key={index} className="terminal-history-line">
+            <pre
+              className={line.type === "terminated" ? "terminated-text" : ""}
+            >
+              {line.text}
+            </pre>
+            {showInlineInput && index === history.length - 1 && (
+              <input
+                ref={inputRef}
+                type="text"
+                className="terminal-input"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleInput}
+                autoFocus
+                autoCapitalize="none"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck="false"
+              />
+            )}
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 

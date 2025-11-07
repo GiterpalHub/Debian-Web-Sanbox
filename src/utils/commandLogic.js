@@ -124,6 +124,7 @@ export const processCommand = (command, args, state) => {
     editorState: null,
     clear: false,
     exit: false,
+    startChallenge: false,
   };
 
   switch (command) {
@@ -467,6 +468,12 @@ export const processCommand = (command, args, state) => {
       }
       break;
     }
+
+    case "chall":
+      result.startChallenge = true;
+      result.history.push("Challenge Mode Activated!");
+      result.history.push("Your tasks are now visible on-screen.");
+      break;
 
     case "help":
       result.history.push("Debian Web Sandbox Commands:");

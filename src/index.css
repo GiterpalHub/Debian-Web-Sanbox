@@ -1,18 +1,18 @@
 body {
   background-color: #0000aa;
   color: #eeeeee;
-  font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+  font-family: "Consolas", "Menlo", "Courier New", monospace;
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
   margin: 0;
   font-size: 1.1rem;
-  scrollbar-width: none; /* For Firefox */
+  scrollbar-width: none;
 }
 
 ::-webkit-scrollbar {
-  display: none; /* For Chrome, Safari, and Opera */
+  display: none;
 }
 
 body.terminal-mode {
@@ -75,7 +75,7 @@ body.terminal-mode {
   background-color: #eeeeee;
   border: 1px solid #555555;
   color: #000000;
-  font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+  font-family: "Consolas", "Menlo", "Courier New", monospace;
   font-size: 1.1rem;
   padding: 5px;
   outline: none;
@@ -153,7 +153,7 @@ body.terminal-mode {
   color: #ffffff;
   border: 1px solid #ffffff;
   padding: 5px 15px;
-  font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+  font-family: "Consolas", "Menlo", "Courier New", monospace;
   font-size: 1.1rem;
   cursor: pointer;
 }
@@ -169,6 +169,7 @@ body.terminal-mode {
   overflow-y: auto;
   scrollbar-width: none;
   padding: 5px 10px;
+  position: relative;
 }
 
 .terminal-container::-webkit-scrollbar {
@@ -183,7 +184,7 @@ pre {
   margin: 0;
   padding: 0;
   white-space: pre-wrap;
-  word-wrap: break-word; 
+  word-wrap: break-word;
   color: #d0d0d0;
 }
 
@@ -191,7 +192,7 @@ input.terminal-input {
   background-color: transparent;
   color: #d0d0d0;
   border: none;
-  font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+  font-family: "Consolas", "Menlo", "Courier New", monospace;
   font-size: 1.1rem;
   outline: none;
   width: 70%;
@@ -199,18 +200,8 @@ input.terminal-input {
   padding: 0;
 }
 
-/* .credit-text { */
-/*   color: #c0c0c0; */
-/*   width: 100%; */
-/*   text-align: center; */
-/*   padding: 0.25rem 0; */
-/* } */
-
 .terminated-text {
   color: #ff8080;
-  /* width: 100%; */
-  /* text-align: left; */
-  /* padding-top: 1rem; */
 }
 
 .editor-container {
@@ -220,7 +211,7 @@ input.terminal-input {
   height: 100vh;
   display: flex;
   flex-direction: column;
-  font-family: 'Consolas', 'Menlo', 'Courier New', monospace;
+  font-family: "Consolas", "Menlo", "Courier New", monospace;
 }
 
 .editor-header {
@@ -253,4 +244,60 @@ input.terminal-input {
   color: #000000;
   padding: 2px 5px;
   font-weight: bold;
+}
+
+.challenge-card {
+  position: fixed;
+  top: 15px;
+  right: 15px;
+  background-color: #f0f0f0;
+  color: #1a1a1a;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 10px 15px;
+  width: 320px;
+  z-index: 1000;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  font-family: Arial, sans-serif;
+  font-size: 0.95rem;
+}
+
+.challenge-card h4 {
+  margin-top: 0;
+  margin-bottom: 10px;
+  color: #0000aa;
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 5px;
+}
+
+.challenge-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.task-item {
+  margin-bottom: 8px;
+  transition: all 0.2s ease-in-out;
+}
+
+.task-item.completed {
+  color: #555;
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+@media (max-width: 600px) {
+  .challenge-card {
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 95%;
+    margin: 10px auto;
+    font-size: 0.9rem;
+  }
+
+  .terminal-container {
+    padding-top: 0;
+  }
 }
