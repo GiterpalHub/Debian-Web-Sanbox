@@ -190,7 +190,7 @@ export const installSteps = [
   },
 ];
 
-export const fakeNginxInstallLogs = [
+export const fakeNginxInstallLogsWithPortfolio = [
   "Reading package lists... Done",
   "Building dependency tree... Done",
   "Reading state information... Done",
@@ -218,4 +218,19 @@ export const fakeNginxInstallLogs = [
   "Setting up nginx (1.22.1-9) ...",
   "Processing triggers for man-db (2.11.2-2) ...",
   "Nginx installed successfully.",
+  "Setting up nginx-common (1.22.1-9) ...",
+  "Setting up nginx-core (1.22.1-9) ...",
+  "Setting up nginx (1.22.1-9) ...",
+  "Processing triggers for man-db (2.11.2-2) ...",
+  "Nginx installed successfully.",
+  " ",
+  "Setting up default portfolio template in /var/www/html...",
+  "Created /var/www/html/index.html (read-only)",
+  "Created /var/www/html/style.css (read-only)",
+  "Created /var/www/html/script.js (read-only)",
+  "Created /var/www/html/.env (writable)",
+  " ",
+  "To deploy your site:",
+  "1. Edit /var/www/html/.env with 'nano' or 'vi'",
+  "2. Run 'deploy-portfolio' to publish your changes.",
 ];

@@ -1,12 +1,60 @@
 import { useState, useEffect, useRef } from "react";
 import Terminal from "./components/Terminal.jsx";
 import PartitionMenu from "./components/PartitionMenu.jsx";
+import PortfolioViewer from "./components/PortfolioViewer.jsx";
 import {
   installSteps,
   fullBootLines,
   installLogMap,
 } from "./data/installData.js";
 import { STORAGE_KEY } from "./data/environment.js";
+
+function BootScreen({ onBootComplete }) {
+  const [bootLog, setBootLog] = useState([]);
+  const installLogRef = useRef(null);
+
+  useEffect(() => {
+    if (installLogRef.current) {
+      installLogRef.current.scrollTop = installLogRef.current.scrollHeight;
+    }
+  }, [bootLog]);
+
+  useEffect(() => {
+    let logIndex = 0;
+    const interval = setInterval(() => {
+      if (logIndex < fullBootLines.length) {
+        setBootLog((prevLogs) => [...prevLogs, fullBootLines[logIndex]]);
+        logIndex++;
+      } else {
+        clearInterval(interval);
+        setTimeout(onBootComplete, 500);
+      }
+    }, 120);
+
+    return () => clearInterval(interval);
+  }, [onBootComplete]);
+
+  return (
+    <div
+      ref={installLogRef}
+      className="terminal-container"
+      style={{
+        backgroundColor: "#0d0d0d",
+        color: "#d0d0d0",
+        fontFamily: "monospace",
+        height: "100vh",
+        width: "100%",
+      }}
+    >
+      {/* Render dari state internal */}
+      {bootLog.map((line, index) => (
+        <pre key={index} style={{ color: "#d0d0d0", fontSize: "0.9rem" }}>
+          {(line && line.text) || line}
+        </pre>
+      ))}
+    </div>
+  );
+}
 
 function App() {
   const [currentStep, setCurrentStep] = useState(0);
@@ -17,14 +65,13 @@ function App() {
       : installSteps[0].default
   );
   const [stepError, setStepError] = useState("");
-  const [showTerminal, setShowTerminal] = useState(false);
-  const [userData, setUserData] = useState({});
+
+  const [userData, setUserData] = useState(null);
   const [installLog, setInstallLog] = useState([]);
 
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDirectBooting, setIsDirectBooting] = useState(false);
-  const [directBootLog, setDirectBootLog] = useState([]);
-  const [didDirectBoot, setDidDirectBoot] = useState(false);
+  const [viewMode, setViewMode] = useState("loading");
+  const [portfolioSlug, setPortfolioSlug] = useState("");
+  const [skipBoot, setSkipBoot] = useState(false);
 
   const inputRef = useRef(null);
   const optionListRef = useRef(null);
@@ -35,11 +82,19 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem(STORAGE_KEY);
     if (savedUser) {
-      setUserData(JSON.parse(savedUser));
+      const user = JSON.parse(savedUser);
+      setUserData(user);
       document.body.classList.add("terminal-mode");
-      setIsDirectBooting(true);
+
+      const savedSlug = localStorage.getItem(`${user.username}_portfolio_slug`);
+      if (savedSlug) {
+        setPortfolioSlug(savedSlug);
+      }
+
+      setSkipBoot(true);
+      setViewMode("booting");
     } else {
-      setIsLoading(false);
+      setViewMode("installer");
     }
   }, []);
 
@@ -85,32 +140,10 @@ function App() {
   }, [currentStep, step]);
 
   useEffect(() => {
-    if (isDirectBooting) {
-      let logIndex = 0;
-      const interval = setInterval(() => {
-        if (logIndex < fullBootLines.length) {
-          setDirectBootLog((prev) => [...prev, fullBootLines[logIndex]]);
-          logIndex++;
-        } else {
-          clearInterval(interval);
-          setTimeout(() => {
-            setIsDirectBooting(false);
-            setIsLoading(false);
-            setShowTerminal(true);
-            setDidDirectBoot(true);
-          }, 500);
-        }
-      }, 120);
-
-      return () => clearInterval(interval);
-    }
-  }, [isDirectBooting]);
-
-  useEffect(() => {
     if (installLogRef.current) {
       installLogRef.current.scrollTop = installLogRef.current.scrollHeight;
     }
-  }, [installLog, directBootLog]);
+  }, [installLog]);
 
   const handleNext = () => {
     if (step.type === "options") {
@@ -137,11 +170,9 @@ function App() {
 
     if (step.title === "Installation Complete") {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-
       document.body.classList.add("terminal-mode");
-      setTimeout(() => {
-        setShowTerminal(true);
-      }, 500);
+      setSkipBoot(false);
+      setViewMode("booting");
       return;
     }
 
@@ -181,130 +212,147 @@ function App() {
     }
   };
 
-  if (showTerminal) {
-    return <Terminal userData={userData} skipBoot={didDirectBoot} />;
+  const handleDeploy = (slug) => {
+    setPortfolioSlug(slug);
+    setViewMode("portfolio");
+  };
+
+  const handleExitPortfolio = () => {
+    setViewMode("terminal");
+  };
+
+  if (viewMode === "loading") {
+    return null;
   }
 
-  if (isDirectBooting) {
+  if ((viewMode === "terminal" || viewMode === "portfolio") && !userData) {
+    return null;
+  }
+
+  if (viewMode === "installer" && step) {
+    const renderContent = () => {
+      switch (step.type) {
+        case "input":
+          return (
+            <form onSubmit={handleInputSubmit} className="input-area">
+              <label>{step.prompt}</label>
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+              />
+            </form>
+          );
+        case "options":
+          return (
+            <div
+              ref={optionListRef}
+              className="option-list"
+              tabIndex="0"
+              onKeyDown={handleOptionKeyDown}
+            >
+              {step.options.map((option) => (
+                <div
+                  key={option}
+                  className={`option-item ${
+                    option === selectedOption ? "selected" : ""
+                  }`}
+                  onClick={() => setSelectedOption(option)}
+                  onDoubleClick={handleNext}
+                >
+                  {option}
+                </div>
+              ))}
+            </div>
+          );
+        case "partitionMenu":
+          return (
+            <PartitionMenu
+              onComplete={handlePartitionComplete}
+              onError={(msg) => setStepError(msg)}
+            />
+          );
+        case "installing":
+          return (
+            <div
+              ref={installLogRef}
+              className="partition-info"
+              style={{
+                height: "200px",
+                overflowY: "auto",
+                backgroundColor: "#0d0d0d",
+                color: "#d0d0d0",
+                fontFamily: "monospace",
+              }}
+            >
+              {installLog.map((line, index) => (
+                <pre
+                  key={index}
+                  style={{ color: "#d0d0d0", fontSize: "0.9rem" }}
+                >
+                  {line}
+                </pre>
+              ))}
+            </div>
+          );
+        case "info":
+        default:
+          return null;
+      }
+    };
+
     return (
-      <div
-        ref={installLogRef}
-        className="terminal-container"
-        style={{
-          backgroundColor: "#0d0d0d",
-          color: "#d0d0d0",
-          fontFamily: "monospace",
-          height: "100vh",
-          width: "100%",
-        }}
-      >
-        {directBootLog.map((line, index) => (
-          <pre key={index} style={{ color: "#d0d0d0", fontSize: "0.9rem" }}>
-            {line}
-          </pre>
-        ))}
+      <div className="installer-window">
+        <div className="title-bar">{step.title}</div>
+        <div className="content">
+          <p>{step.text}</p>
+          {renderContent()}
+          {stepError && <div className="error-message">{stepError}</div>}
+        </div>
+        <div className="button-bar">
+          <button
+            onClick={handleNext}
+            autoFocus={
+              step.type === "info" ||
+              (step.type === "input" && !inputRef.current)
+            }
+            disabled={
+              step.type === "installing" || step.type === "partitionMenu"
+            }
+          >
+            &lt;Continue&gt;
+          </button>
+        </div>
       </div>
     );
   }
 
-  if (isLoading) {
-    return null;
+  if (viewMode === "booting") {
+    return <BootScreen onBootComplete={() => setViewMode("terminal")} />;
   }
 
-  if (!step) {
-    return null;
+  if (viewMode === "portfolio") {
+    return (
+      <PortfolioViewer
+        username={userData.username}
+        slug={portfolioSlug}
+        onExit={handleExitPortfolio}
+      />
+    );
   }
 
-  const renderContent = () => {
-    switch (step.type) {
-      case "input":
-        return (
-          <form onSubmit={handleInputSubmit} className="input-area">
-            <label>{step.prompt}</label>
-            <input
-              ref={inputRef}
-              type="text"
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-            />
-          </form>
-        );
-      case "options":
-        return (
-          <div
-            ref={optionListRef}
-            className="option-list"
-            tabIndex="0"
-            onKeyDown={handleOptionKeyDown}
-          >
-            {step.options.map((option) => (
-              <div
-                key={option}
-                className={`option-item ${
-                  option === selectedOption ? "selected" : ""
-                }`}
-                onClick={() => setSelectedOption(option)}
-                onDoubleClick={handleNext}
-              >
-                {option}
-              </div>
-            ))}
-          </div>
-        );
-      case "partitionMenu":
-        return (
-          <PartitionMenu
-            onComplete={handlePartitionComplete}
-            onError={(msg) => setStepError(msg)}
-          />
-        );
-      case "installing":
-        return (
-          <div
-            ref={installLogRef}
-            className="partition-info"
-            style={{
-              height: "200px",
-              overflowY: "auto",
-              backgroundColor: "#0d0d0d",
-              color: "#d0d0d0",
-              fontFamily: "monospace",
-            }}
-          >
-            {installLog.map((line, index) => (
-              <pre key={index} style={{ color: "#d0d0d0", fontSize: "0.9rem" }}>
-                {line}
-              </pre>
-            ))}
-          </div>
-        );
-      case "info":
-      default:
-        return null;
-    }
-  };
+  if (viewMode === "terminal") {
+    return (
+      <Terminal
+        userData={userData}
+        skipBoot={skipBoot}
+        onDeploy={handleDeploy}
+      />
+    );
+  }
 
-  return (
-    <div className="installer-window">
-      <div className="title-bar">{step.title}</div>
-      <div className="content">
-        <p>{step.text}</p>
-        {renderContent()}
-        {stepError && <div className="error-message">{stepError}</div>}
-      </div>
-      <div className="button-bar">
-        <button
-          onClick={handleNext}
-          autoFocus={
-            step.type === "info" || (step.type === "input" && !inputRef.current)
-          }
-          disabled={step.type === "installing" || step.type === "partitionMenu"}
-        >
-          &lt;Continue&gt;
-        </button>
-      </div>
-    </div>
-  );
+  return null;
 }
 
 export default App;

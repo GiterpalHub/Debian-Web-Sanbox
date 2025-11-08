@@ -1,4 +1,10 @@
-import { fakeNginxInstallLogs } from "../data/installData.js";
+import { fakeNginxInstallLogsWithPortfolio } from "../data/installData.js";
+import {
+  defaultEnv,
+  templateHTML,
+  templateCSS,
+  templateJS,
+} from "../data/portfolioTemplate.js";
 
 export const normalizePath = (path) => {
   return (
@@ -118,6 +124,24 @@ export const createFileSystem = (userData) => ({
   },
 });
 
+const readOnlyPaths = [
+  "/var/www/html/index.html",
+  "/var/www/html/style.css",
+  "/var/www/html/script.js",
+];
+
+const parseEnv = (envContent) => {
+  const env = {};
+  envContent.split("\n").forEach((line) => {
+    if (line.startsWith("#") || !line.includes("=")) {
+      return;
+    }
+    const [key, ...valueParts] = line.split("=");
+    env[key.trim()] = valueParts.join("=").trim();
+  });
+  return env;
+};
+
 export const processCommand = (command, args, state) => {
   let { fileSystem, currentDir, homeDir, userData, userPrompt } = state;
 
@@ -130,6 +154,7 @@ export const processCommand = (command, args, state) => {
     clear: false,
     exit: false,
     startChallenge: false,
+    deployment: null,
   };
 
   switch (command) {
@@ -311,6 +336,14 @@ export const processCommand = (command, args, state) => {
 
     case "rm": {
       const rmPath = args[0] ? resolvePath(currentDir, args[0]) : null;
+
+      if (readOnlyPaths.includes(rmPath)) {
+        result.history.push(
+          `rm: cannot remove '${args[0]}': Permission denied (read-only file)`
+        );
+        break;
+      }
+
       if (!rmPath) {
         result.history.push(`rm: missing operand`);
         break;
@@ -356,6 +389,14 @@ export const processCommand = (command, args, state) => {
     case "nano":
     case "vi": {
       const filePath = args[0] ? resolvePath(currentDir, args[0]) : null;
+
+      if (readOnlyPaths.includes(filePath)) {
+        result.history.push(
+          `bash: ${command}: ${args[0]}: Permission denied (read-only file)`
+        );
+        break;
+      }
+
       if (!filePath) {
         result.history.push(`${command}: missing file operand`);
         break;
@@ -451,7 +492,7 @@ export const processCommand = (command, args, state) => {
       } else if (subCommand === "install") {
         const pkg = args[1];
         if (pkg === "nginx") {
-          fakeNginxInstallLogs.forEach((line) => result.history.push(line));
+          result.linesToAnimate = fakeNginxInstallLogsWithPortfolio;
 
           let newFs = setFsNode(fileSystem, "/etc/nginx", {});
           newFs = setFsNode(
@@ -459,6 +500,11 @@ export const processCommand = (command, args, state) => {
             "/etc/nginx/nginx.conf",
             "user www-data;\nworker_processes auto;"
           );
+          newFs = setFsNode(newFs, "/var/www/html", {});
+          newFs = setFsNode(newFs, "/var/www/html/.env", defaultEnv);
+          newFs = setFsNode(newFs, "/var/www/html/index.html", templateHTML);
+          newFs = setFsNode(newFs, "/var/www/html/style.css", templateCSS);
+          newFs = setFsNode(newFs, "/var/www/html/script.js", templateJS);
           result.fileSystem = newFs;
         } else if (pkg) {
           result.history.push("Reading package lists... Done");
@@ -471,6 +517,69 @@ export const processCommand = (command, args, state) => {
         result.history.push("apt <command> [options]");
         result.history.push("Commands: update, install");
       }
+      break;
+    }
+
+    case "deploy-portfolio": {
+      const envPath = "/var/www/html/.env";
+      const envNode = getDirNode(envPath, fileSystem);
+
+      if (envNode === null || typeof envNode !== "string") {
+        result.history.push(
+          "deploy-portfolio: ERROR: /var/www/html/.env not found."
+        );
+        result.history.push("Hint: Have you run 'apt install nginx' yet?");
+        break;
+      }
+
+      const envData = parseEnv(envNode);
+      const name = envData.NAME || userData.username || "user";
+      const slug = name
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-+|-+$/g, "");
+
+      if (!slug) {
+        result.history.push(
+          "deploy-portfolio: ERROR: Could not generate a name from .env file."
+        );
+        break;
+      }
+
+      const nginxConfig = `
+server {
+    listen 80;
+    server_name domain.com;
+
+    root /var/www/html;
+    index index.html;
+
+    location /result/${slug} {
+        try_files /index.html =404;
+    }
+}
+    `;
+
+      let newFs = setFsNode(
+        fileSystem,
+        "/etc/nginx/sites-available/portfolio",
+        nginxConfig
+      );
+      result.fileSystem = newFs;
+
+      result.history.push(
+        "Connecting to data-warehouse (api.sheets.google.com)..."
+      );
+      result.history.push("Saving configuration... OK.");
+
+      result.deployment = {
+        slug: slug,
+        envContent: envNode,
+      };
+
+      result.history.push(" ");
+      result.history.push("Deployment successful!");
+      result.history.push(`View at: /result/${slug}`);
       break;
     }
 

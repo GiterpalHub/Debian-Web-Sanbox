@@ -37,12 +37,6 @@ export const getInitialChallengeTasks = (homeDir) => [
       getDirNode(`${homeDir}/projects/mission.txt`, fs) === null &&
       getDirNode(`${homeDir}/Documents/mission.txt`, fs) === "I did it!",
   },
-  {
-    id: 6,
-    text: "Delete the (now empty) 'projects' directory.",
-    completed: false,
-    check: (fs) => getDirNode(`${homeDir}/projects`, fs) === null,
-  },
 ];
 
 export const checkChallengeProgress = (

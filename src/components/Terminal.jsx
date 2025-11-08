@@ -18,7 +18,7 @@ import {
   checkChallengeProgress,
 } from "../data/challengeData.js";
 
-function Terminal({ userData, skipBoot = false }) {
+function Terminal({ userData, skipBoot = false, onDeploy }) {
   const [history, setHistory] = useState([]);
   const [input, setInput] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
@@ -40,6 +40,7 @@ function Terminal({ userData, skipBoot = false }) {
 
   const [commandHistory, setCommandHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const initialPrompt = `${userData.username || "user"}@${
     userData.hostname || "debian"
@@ -93,7 +94,26 @@ function Terminal({ userData, skipBoot = false }) {
     }
   }, [history]);
 
+  const runAnimatedCommand = (lines, finalPrompt) => {
+    setIsAnimating(true);
+    let lineIndex = 0;
+    const interval = setInterval(() => {
+      if (lineIndex < lines.length) {
+        setHistory((prev) => [...prev, { text: lines[lineIndex] }]);
+        lineIndex++;
+      } else {
+        clearInterval(interval);
+        setIsAnimating(false);
+        setHistory((prev) => [
+          ...prev,
+          { text: finalPrompt, prompt: true, type: "command" },
+        ]);
+      }
+    }, 50);
+  };
+
   const handleInput = (e) => {
+    if (isAnimating) return;
     switch (e.key) {
       case "Enter": {
         e.preventDefault();
@@ -111,6 +131,28 @@ function Terminal({ userData, skipBoot = false }) {
 
         if (loggedIn) {
           newHistory[newHistory.length - 1] = { text: `${userPrompt}${input}` };
+
+          const hasCompleted = localStorage.getItem(CHALLENGE_KEY) === "true";
+          const isForce = args.includes("--force");
+
+          if (command === "chall" && hasCompleted && !isForce) {
+            newHistory.push({
+              text: "You finished this chall! If u need play again add --force.",
+            });
+            newHistory.push({ text: "ex: chall --force" });
+            newHistory.push({
+              text: userPrompt,
+              prompt: true,
+              type: "command",
+            });
+            setHistory(newHistory);
+            setInput("");
+            return;
+          }
+
+          if (command === "chall" && isForce) {
+            localStorage.removeItem(CHALLENGE_KEY);
+          }
           const currentState = {
             fileSystem: fileSystem,
             currentDir: currentDir,
@@ -121,12 +163,28 @@ function Terminal({ userData, skipBoot = false }) {
 
           const result = processCommand(command, args, currentState);
 
+          if (result.linesToAnimate && result.linesToAnimate.length > 0) {
+            setHistory(newHistory);
+            setInput("");
+
+            runAnimatedCommand(result.linesToAnimate, result.userPrompt);
+
+            setFileSystem(result.fileSystem);
+            return;
+          }
+
           if (result.history.length > 0) {
             result.history.forEach((line) => newHistory.push({ text: line }));
           }
           setFileSystem(result.fileSystem);
           setCurrentDir(result.currentDir);
           setUserPrompt(result.userPrompt);
+
+          if (result.startChallenge) {
+            setIsChallengeMode(true);
+            localStorage.removeItem(CHALLENGE_KEY);
+            setChallengeTasks(getInitialChallengeTasks(homeDir));
+          }
 
           const {
             newTasks,
@@ -195,6 +253,19 @@ function Terminal({ userData, skipBoot = false }) {
             setHistory(newHistory);
             setInput("");
             return;
+          }
+
+          if (result.deployment) {
+            const { slug, envContent } = result.deployment;
+            const envKey = `${userData.username || "user"}_portfolio_env`;
+            const slugKey = `${userData.username || "user"}_portfolio_slug`;
+
+            localStorage.setItem(envKey, envContent);
+            localStorage.setItem(slugKey, slug);
+
+            if (onDeploy) {
+              onDeploy(slug);
+            }
           }
 
           newHistory.push({
@@ -284,6 +355,7 @@ function Terminal({ userData, skipBoot = false }) {
           "help",
           "clear",
           "exit",
+          "deploy-portfolio",
         ];
 
         const parts = input.split(" ");
@@ -344,6 +416,8 @@ function Terminal({ userData, skipBoot = false }) {
     const newFs = setFsNode(fileSystem, filePath, newContent);
     setFileSystem(newFs);
 
+    const envPath = "/var/www/html/.env";
+
     let newHistory = [...history, { text: `File "${filePath}" saved.` }];
 
     const {
@@ -361,6 +435,12 @@ function Terminal({ userData, skipBoot = false }) {
       localStorage.setItem(CHALLENGE_KEY, "true");
       setIsChallengeMode(false);
       setChallengeTasks(getInitialChallengeTasks(homeDir));
+    }
+
+    if (editorState.filePath === envPath) {
+      newHistory.push({
+        text: "Hint: Run 'deploy-portfolio' to publish your changes.",
+      });
     }
 
     newHistory.push({ text: userPrompt, prompt: true, type: "command" });
@@ -393,6 +473,7 @@ function Terminal({ userData, skipBoot = false }) {
   const lastLine = history.length > 0 ? history[history.length - 1] : {};
   const showInlineInput =
     !isTerminated &&
+    !isAnimating &&
     lastLine.prompt &&
     (lastLine.type === "command" || lastLine.type === "login");
 
