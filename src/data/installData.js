@@ -50,6 +50,12 @@ export const fakeFinalConfigLogs = [
   "done",
 ];
 
+export const installLogMap = {
+  system: fakeSystemInstallLogs,
+  grub: fakeGrubInstallLogs,
+  finalConfig: fakeFinalConfigLogs,
+};
+
 export const fullBootLines = [
   "Linux version 6.1.0-20-amd64 (debian-kernel@lists.debian.org) ...",
   "[    0.000000] DMI: VirtualBox/VirtualBox, BIOS VirtualBox 12/01/2006",
@@ -182,4 +188,34 @@ export const installSteps = [
     text: "Installation is complete. Press 'Continue' to reboot.",
     type: "info",
   },
+];
+
+export const fakeNginxInstallLogs = [
+  "Reading package lists... Done",
+  "Building dependency tree... Done",
+  "Reading state information... Done",
+  "The following NEW packages will be installed:",
+  "  nginx nginx-common nginx-core",
+  "0 upgraded, 3 newly installed, 0 to remove and 0 not upgraded.",
+  "Need to get 1,534 kB of archives.",
+  "After this operation, 5,833 kB of additional disk space will be used.",
+  "Get:1 http://deb.debian.org/debian bookworm/main amd64 nginx-common all 1.22.1-9 [122 kB]",
+  "Get:2 http://deb.debian.org/debian bookworm/main amd64 nginx-core amd64 1.22.1-9 [1,412 kB]",
+  "Get:3 http://deb.debian.org/debian bookworm/main amd64 nginx all 1.22.1-9 [10.2 kB]",
+  "Fetched 1,534 kB in 1s (1,843 kB/s)",
+  "Selecting previously unselected package nginx-common.",
+  "(Reading database ... 25120 files and directories currently installed.)",
+  "Preparing to unpack .../nginx-common_1.22.1-9_all.deb ...",
+  "Unpacking nginx-common (1.22.1-9) ...",
+  "Selecting previously unselected package nginx-core.",
+  "Preparing to unpack .../nginx-core_1.22.1-9_amd64.deb ...",
+  "Unpacking nginx-core (1.22.1-9) ...",
+  "Selecting previously unselected package nginx.",
+  "Preparing to unpack .../nginx_1.22.1-9_all.deb ...",
+  "Unpacking nginx (1.22.1-9) ...",
+  "Setting up nginx-common (1.22.1-9) ...",
+  "Setting up nginx-core (1.22.1-9) ...",
+  "Setting up nginx (1.22.1-9) ...",
+  "Processing triggers for man-db (2.11.2-2) ...",
+  "Nginx installed successfully.",
 ];

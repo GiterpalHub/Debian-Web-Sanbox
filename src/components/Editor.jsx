@@ -29,56 +29,16 @@ function Editor({ mode, filePath, initialContent, onExit }) {
     mode === "nano" ? "[ ^X Exit ]" : "[ Press Ctrl+X to save and exit ]";
 
   return (
-    <div
-      className="text-editor"
-      style={{
-        backgroundColor: "#00002a",
-        color: "#ffffff",
-        width: "100%",
-        height: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        fontFamily: "'Consolas', 'Menlo', 'Courier New', monospace",
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: "#bbbbbb",
-          color: "#000000",
-          padding: "2px 5px",
-          fontWeight: "bold",
-        }}
-      >
-        {headerText}
-      </div>
+    <div className="editor-container">
+      <div className="editor-header">{headerText}</div>
       <textarea
         ref={textAreaRef}
         value={content}
         onChange={(e) => setContent(e.target.value)}
         spellCheck="false"
-        style={{
-          flexGrow: 1,
-          width: "100%",
-          backgroundColor: "transparent",
-          color: "#ffffff",
-          border: "none",
-          outline: "none",
-          resize: "none",
-          fontFamily: "inherit",
-          fontSize: "1.1rem",
-          padding: "5px 10px",
-        }}
+        className="editor-textarea"
       />
-      <div
-        style={{
-          backgroundColor: "#bbbbbb",
-          color: "#000000",
-          padding: "2px 5px",
-          fontWeight: "bold",
-        }}
-      >
-        {footerText}
-      </div>
+      <div className="editor-footer">{footerText}</div>
     </div>
   );
 }

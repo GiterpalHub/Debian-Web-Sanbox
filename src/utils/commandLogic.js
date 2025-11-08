@@ -1,3 +1,5 @@
+import { fakeNginxInstallLogs } from "../data/installData.js";
+
 export const normalizePath = (path) => {
   return (
     "/" +
@@ -83,35 +85,38 @@ export const deleteFsNode = (fs, path) => {
 
 const getFileName = (path) => path.substring(path.lastIndexOf("/") + 1);
 
-const fakeInstallLog = [
-  "Reading package lists... Done",
-  "Building dependency tree... Done",
-  "Reading state information... Done",
-  "The following NEW packages will be installed:",
-  "  nginx nginx-common nginx-core",
-  "0 upgraded, 3 newly installed, 0 to remove and 0 not upgraded.",
-  "Need to get 1,534 kB of archives.",
-  "After this operation, 5,833 kB of additional disk space will be used.",
-  "Get:1 http://deb.debian.org/debian bookworm/main amd64 nginx-common all 1.22.1-9 [122 kB]",
-  "Get:2 http://deb.debian.org/debian bookworm/main amd64 nginx-core amd64 1.22.1-9 [1,412 kB]",
-  "Get:3 http://deb.debian.org/debian bookworm/main amd64 nginx all 1.22.1-9 [10.2 kB]",
-  "Fetched 1,534 kB in 1s (1,843 kB/s)",
-  "Selecting previously unselected package nginx-common.",
-  "(Reading database ... 25120 files and directories currently installed.)",
-  "Preparing to unpack .../nginx-common_1.22.1-9_all.deb ...",
-  "Unpacking nginx-common (1.22.1-9) ...",
-  "Selecting previously unselected package nginx-core.",
-  "Preparing to unpack .../nginx-core_1.22.1-9_amd64.deb ...",
-  "Unpacking nginx-core (1.22.1-9) ...",
-  "Selecting previously unselected package nginx.",
-  "Preparing to unpack .../nginx_1.22.1-9_all.deb ...",
-  "Unpacking nginx (1.22.1-9) ...",
-  "Setting up nginx-common (1.22.1-9) ...",
-  "Setting up nginx-core (1.22.1-9) ...",
-  "Setting up nginx (1.22.1-9) ...",
-  "Processing triggers for man-db (2.11.2-2) ...",
-  "Nginx installed successfully.",
-];
+export const createFileSystem = (userData) => ({
+  "/": {
+    home: {
+      [userData.username || "user"]: {
+        Documents: {},
+        Downloads: {},
+        "README.txt": "Welcome to your new Debian server!",
+        "script.sh": "#!/bin/bash\necho 'Hello world'",
+        "catatan.txt": "",
+      },
+    },
+    etc: {
+      hostname: userData.hostname || "debian",
+      hosts: "127.0.0.1 localhost",
+    },
+    root: {
+      ".bashrc": "...",
+    },
+    var: {
+      log: {
+        syslog: "system log [timestamp]...",
+        nginx: {
+          "error.log":
+            "2025/11/03 06:30:00 [error] 123#123: *1 connect() failed (111: Connection refused) while connecting to upstream...",
+        },
+      },
+    },
+    tmp: {
+      "penting.txt": "This is a very important file.",
+    },
+  },
+});
 
 export const processCommand = (command, args, state) => {
   let { fileSystem, currentDir, homeDir, userData, userPrompt } = state;
@@ -446,7 +451,7 @@ export const processCommand = (command, args, state) => {
       } else if (subCommand === "install") {
         const pkg = args[1];
         if (pkg === "nginx") {
-          fakeInstallLog.forEach((line) => result.history.push(line));
+          fakeNginxInstallLogs.forEach((line) => result.history.push(line));
 
           let newFs = setFsNode(fileSystem, "/etc/nginx", {});
           newFs = setFsNode(

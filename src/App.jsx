@@ -3,19 +3,10 @@ import Terminal from "./components/Terminal.jsx";
 import PartitionMenu from "./components/PartitionMenu.jsx";
 import {
   installSteps,
-  fakeSystemInstallLogs,
-  fakeGrubInstallLogs,
-  fakeFinalConfigLogs,
   fullBootLines,
+  installLogMap,
 } from "./data/installData.js";
-
-const installLogMap = {
-  system: fakeSystemInstallLogs,
-  grub: fakeGrubInstallLogs,
-  finalConfig: fakeFinalConfigLogs,
-};
-
-const STORAGE_KEY = "debianSandboxUser";
+import { STORAGE_KEY } from "./data/environment.js";
 
 function App() {
   const [currentStep, setCurrentStep] = useState(0);

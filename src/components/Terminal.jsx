@@ -6,89 +6,17 @@ import {
   setFsNode,
   getDirNode,
   resolvePath,
+  createFileSystem,
 } from "../utils/commandLogic.js";
-
-const BOOT_DELAY_MS = 120;
-const EXIT_DELAY_MS = BOOT_DELAY_MS * 2;
-const CHALLENGE_KEY = "DEBIAN_SANDBOX_CHALLENGE_COMPLETE";
-
-const createFileSystem = (userData) => ({
-  "/": {
-    home: {
-      [userData.username || "user"]: {
-        Documents: {},
-        Downloads: {},
-        "README.txt": "Welcome to your new Debian server!",
-        "script.sh": "#!/bin/bash\necho 'Hello world'",
-        "catatan.txt": "",
-      },
-    },
-    etc: {
-      hostname: userData.hostname || "debian",
-      hosts: "127.0.0.1 localhost",
-    },
-    root: {
-      ".bashrc": "...",
-    },
-    var: {
-      log: {
-        syslog: "system log [timestamp]...",
-        nginx: {
-          "error.log":
-            "2025/11/03 06:30:00 [error] 123#123: *1 connect() failed (111: Connection refused) while connecting to upstream...",
-        },
-      },
-    },
-    tmp: {
-      "penting.txt": "This is a very important file.",
-    },
-  },
-});
-
-const getInitialChallengeTasks = (homeDir) => [
-  {
-    id: 1,
-    text: "Create a directory 'projects' in your home.",
-    completed: false,
-    check: (fs) => {
-      const node = getDirNode(`${homeDir}/projects`, fs);
-      return node && typeof node === "object";
-    },
-  },
-  {
-    id: 2,
-    text: "Navigate into the 'projects' directory.",
-    completed: false,
-    check: (fs, cd) => cd === `${homeDir}/projects`,
-  },
-  {
-    id: 3,
-    text: "Create a file 'mission.txt'.",
-    completed: false,
-    check: (fs) => getDirNode(`${homeDir}/projects/mission.txt`, fs) !== null,
-  },
-  {
-    id: 4,
-    text: "Write 'I did it!' into 'mission.txt'.",
-    completed: false,
-    check: (fs) =>
-      getDirNode(`${homeDir}/projects/mission.txt`, fs) === "I did it!",
-  },
-  {
-    id: 5,
-    text: "Move 'mission.txt' to your 'Documents' folder.",
-    completed: false,
-    check: (fs) =>
-      getDirNode(`${homeDir}/projects/mission.txt`, fs) === null &&
-      getDirNode(`${homeDir}/Documents/mission.txt`, fs) === "I did it!",
-  },
-  {
-    id: 6,
-    text: "Delete the (now empty) 'projects' directory.",
-    completed: false,
-    check: (fs) => getDirNode(`${homeDir}/projects`, fs) === null,
-  },
-];
+import {
+  BOOT_DELAY_MS,
+  EXIT_DELAY_MS,
+  CHALLENGE_KEY,
+} from "../data/environment.js";
+import {
+  getInitialChallengeTasks,
+  checkChallengeProgress,
+} from "../data/challengeData.js";
 
 function Terminal({ userData, skipBoot = false }) {
   const [history, setHistory] = useState([]);
@@ -117,26 +45,6 @@ function Terminal({ userData, skipBoot = false }) {
     userData.hostname || "debian"
   }:~$ `;
   const [userPrompt, setUserPrompt] = useState(initialPrompt);
-
-  const checkChallengeProgress = (currentFs, currentDir) => {
-    if (!isChallengeMode) return;
-
-    const wasIncomplete = challengeTasks.some((task) => !task.completed);
-
-    let allDone = true;
-    const newTasks = challengeTasks.map((task) => {
-      if (task.completed) return task;
-
-      const isCompleted = task.check(currentFs, currentDir, homeDir);
-      if (!isCompleted) allDone = false;
-
-      return { ...task, completed: isCompleted };
-    });
-
-    setChallengeTasks(newTasks);
-
-    return wasIncomplete && allDone;
-  };
 
   const inputRef = useRef(null);
   const terminalRef = useRef(null);
@@ -203,29 +111,6 @@ function Terminal({ userData, skipBoot = false }) {
 
         if (loggedIn) {
           newHistory[newHistory.length - 1] = { text: `${userPrompt}${input}` };
-
-          const hasCompleted = localStorage.getItem(CHALLENGE_KEY) === "true";
-          const isForce = args.includes("--force");
-
-          if (command === "chall" && hasCompleted && !isForce) {
-            newHistory.push({
-              text: "You finished this chall! If u need play again add --force.",
-            });
-            newHistory.push({ text: "ex: chall --force" });
-            newHistory.push({
-              text: userPrompt,
-              prompt: true,
-              type: "command",
-            });
-            setHistory(newHistory);
-            setInput("");
-            return;
-          }
-
-          if (command === "chall" && isForce) {
-            localStorage.removeItem(CHALLENGE_KEY);
-          }
-
           const currentState = {
             fileSystem: fileSystem,
             currentDir: currentDir,
@@ -242,16 +127,19 @@ function Terminal({ userData, skipBoot = false }) {
           setFileSystem(result.fileSystem);
           setCurrentDir(result.currentDir);
           setUserPrompt(result.userPrompt);
-          if (result.startChallenge) {
-            setIsChallengeMode(true);
-            localStorage.removeItem(CHALLENGE_KEY);
-            setChallengeTasks(getInitialChallengeTasks(homeDir));
-          }
 
-          const didComplete = checkChallengeProgress(
+          const {
+            newTasks,
+            allDone,
+            justCompleted: didComplete,
+          } = checkChallengeProgress(
+            challengeTasks,
             result.fileSystem,
-            result.currentDir
+            result.currentDir,
+            homeDir
           );
+
+          setChallengeTasks(newTasks);
 
           if (didComplete) {
             newHistory.push({
@@ -458,7 +346,13 @@ function Terminal({ userData, skipBoot = false }) {
 
     let newHistory = [...history, { text: `File "${filePath}" saved.` }];
 
-    const didComplete = checkChallengeProgress(newFs, currentDir);
+    const {
+      newTasks,
+      allDone,
+      justCompleted: didComplete,
+    } = checkChallengeProgress(challengeTasks, newFs, currentDir, homeDir);
+
+    setChallengeTasks(newTasks);
 
     if (didComplete) {
       newHistory.push({ text: "----------------------------------------" });
