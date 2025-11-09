@@ -7,7 +7,7 @@ import {
   fullBootLines,
   installLogMap,
 } from "./data/installData.js";
-import { STORAGE_KEY } from "./data/environment.js";
+import { STORAGE_KEY, FILESYSTEM_KEY_PREFIX } from "./data/environment.js";
 
 function BootScreen({ onBootComplete }) {
   const [bootLog, setBootLog] = useState([]);
@@ -46,7 +46,6 @@ function BootScreen({ onBootComplete }) {
         width: "100%",
       }}
     >
-      {/* Render dari state internal */}
       {bootLog.map((line, index) => (
         <pre key={index} style={{ color: "#d0d0d0", fontSize: "0.9rem" }}>
           {(line && line.text) || line}
@@ -71,7 +70,7 @@ function Sanbox() {
 
   const [viewMode, setViewMode] = useState("loading");
   const [portfolioSlug, setPortfolioSlug] = useState("");
-  const [skipBoot, setSkipBoot] = useState(false);
+  const [startLoggedIn, setStartLoggedIn] = useState(false);
 
   const navigate = useNavigate();
 
@@ -93,9 +92,10 @@ function Sanbox() {
         setPortfolioSlug(savedSlug);
       }
 
-      setSkipBoot(true);
+      setStartLoggedIn(false);
       setViewMode("booting");
     } else {
+      setStartLoggedIn(false);
       setViewMode("installer");
     }
   }, []);
@@ -172,9 +172,7 @@ function Sanbox() {
 
     if (step.title === "Installation Complete") {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
-      document.body.classList.add("terminal-mode");
-      setSkipBoot(false);
-      setViewMode("booting");
+      window.location.reload();
       return;
     }
 
@@ -216,6 +214,17 @@ function Sanbox() {
 
   const handleDeploy = (slug) => {
     navigate(`/result/${slug}`);
+  };
+
+  const handleFullReset = () => {
+    if (userData) {
+      const fsKey = `${FILESYSTEM_KEY_PREFIX}${userData.username || "user"}`;
+      localStorage.removeItem(fsKey);
+      localStorage.removeItem(`${userData.username}_portfolio_slug`);
+      localStorage.removeItem(`${userData.username}_portfolio_env`);
+    }
+    localStorage.removeItem(STORAGE_KEY);
+    window.location.reload();
   };
 
   if (viewMode === "loading") {
@@ -333,8 +342,9 @@ function Sanbox() {
     return (
       <Terminal
         userData={userData}
-        skipBoot={skipBoot}
+        startLoggedIn={startLoggedIn}
         onDeploy={handleDeploy}
+        onFullReset={handleFullReset}
       />
     );
   }

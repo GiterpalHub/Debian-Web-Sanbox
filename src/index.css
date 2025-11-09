@@ -287,6 +287,20 @@ input.terminal-input {
   opacity: 0.7;
 }
 
+.terminal-link {
+  font-family: "Consolas", "Menlo", "Courier New", monospace;
+  font-size: 1.1rem;
+  color: #87cefa;
+  text-decoration: underline;
+  cursor: pointer;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+
+.terminal-link:hover {
+  color: #add8e6;
+}
+
 @media (max-width: 600px) {
   .challenge-card {
     position: relative;

@@ -12,19 +12,21 @@ import {
   BOOT_DELAY_MS,
   EXIT_DELAY_MS,
   CHALLENGE_KEY,
+  FILESYSTEM_KEY_PREFIX,
 } from "../data/environment.js";
 import {
   getInitialChallengeTasks,
   checkChallengeProgress,
 } from "../data/challengeData.js";
 
-function Terminal({ userData, skipBoot = false, onDeploy }) {
+function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
   const [history, setHistory] = useState([]);
   const [input, setInput] = useState("");
-  const [loggedIn, setLoggedIn] = useState(false);
-  const [isBooting, setIsBooting] = useState(true);
+  const [loggedIn, setLoggedIn] = useState(startLoggedIn);
+  const [isBooting, setIsBooting] = useState(!startLoggedIn);
   const [isTerminated, setIsTerminated] = useState(false);
   const [fileSystem, setFileSystem] = useState(null);
+  const [isFsLoaded, setIsFsLoaded] = useState(false);
   const [currentDir, setCurrentDir] = useState("/");
   const [editorState, setEditorState] = useState({
     mode: "none",
@@ -52,41 +54,64 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
   const loginPrompt = "debian login: ";
 
   useEffect(() => {
-    if (skipBoot) {
+    if (startLoggedIn) {
+      setHistory([
+        { text: "Thanks for attending this workshop by HIMA TRPL" },
+        {
+          text: "Welcome back to Debian GNU/Linux 12 (bookworm)!",
+        },
+      ]);
+      setIsBooting(false);
+      return;
+    } else {
       setHistory([
         { text: "Thanks for attending this workshop by HIMA TRPL" },
         { text: "Welcome to Debian GNU/Linux 12 (bookworm)!" },
         { text: "debian login: ", prompt: true, type: "login" },
       ]);
       setIsBooting(false);
-      return;
     }
+  }, [startLoggedIn]);
 
-    let lineIndex = 0;
-    const interval = setInterval(() => {
-      if (lineIndex < fullBootLines.length) {
-        setHistory((prev) => [...prev, { text: fullBootLines[lineIndex] }]);
-        lineIndex++;
+  useEffect(() => {
+    if (loggedIn && !isFsLoaded) {
+      const fsKey = `${FILESYSTEM_KEY_PREFIX}${userData.username || "user"}`;
+      const savedFs = localStorage.getItem(fsKey);
+
+      if (savedFs) {
+        setFileSystem(JSON.parse(savedFs));
       } else {
-        clearInterval(interval);
+        setFileSystem(createFileSystem(userData));
+      }
+      setCurrentDir(homeDir);
+      setUserPrompt(initialPrompt);
+      setIsFsLoaded(true);
+    }
+  }, [loggedIn, isFsLoaded, userData, homeDir, initialPrompt]);
+
+  useEffect(() => {
+    if (loggedIn && isFsLoaded && fileSystem) {
+      const fsKey = `${FILESYSTEM_KEY_PREFIX}${userData.username || "user"}`;
+      localStorage.setItem(fsKey, JSON.stringify(fileSystem));
+    }
+  }, [fileSystem, loggedIn, isFsLoaded, userData.username]);
+
+  useEffect(() => {
+    if (isFsLoaded && loggedIn && !isAnimating) {
+      if (history.length === 0 || !history[history.length - 1].prompt) {
         setHistory((prev) => [
           ...prev,
-          { text: "Thanks for attending this workshop by HIMA TRPL" },
-          { text: "Welcome to Debian GNU/Linux 12 (bookworm)!" },
-          { text: "debian login: ", prompt: true, type: "login" },
+          { text: userPrompt, prompt: true, type: "command" },
         ]);
-        setIsBooting(false);
       }
-    }, BOOT_DELAY_MS);
-
-    return () => clearInterval(interval);
-  }, []);
+    }
+  }, [isFsLoaded, loggedIn, userPrompt, history, isAnimating]);
 
   useEffect(() => {
     if (!isBooting && inputRef.current) {
       inputRef.current.focus();
     }
-  }, [isBooting, editorState]);
+  }, [isBooting, editorState, isFsLoaded]);
 
   useEffect(() => {
     if (terminalRef.current) {
@@ -130,6 +155,8 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
         const [command, ...args] = trimmedInput.split(" ");
 
         if (loggedIn) {
+          if (!isFsLoaded) return;
+
           newHistory[newHistory.length - 1] = { text: `${userPrompt}${input}` };
 
           const hasCompleted = localStorage.getItem(CHALLENGE_KEY) === "true";
@@ -163,6 +190,30 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
 
           const result = processCommand(command, args, currentState);
 
+          if (result.reboot) {
+            setLoggedIn(false);
+            setFileSystem(null);
+            setIsFsLoaded(false);
+            newHistory.push({ text: "reboot: System is rebooting..." });
+            setHistory(newHistory);
+            setInput("");
+            setTimeout(() => {
+              setHistory((prev) => [
+                ...prev,
+                { text: " " },
+                { text: "Welcome to Debian GNU/Linux 12 (bookworm)!" },
+                { text: "debian login: ", prompt: true, type: "login" },
+              ]);
+            }, 1500);
+            window.location.reload();
+            return;
+          }
+
+          if (result.fullReset) {
+            onFullReset();
+            return;
+          }
+
           if (result.linesToAnimate && result.linesToAnimate.length > 0) {
             setHistory(newHistory);
             setInput("");
@@ -174,8 +225,15 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
           }
 
           if (result.history.length > 0) {
-            result.history.forEach((line) => newHistory.push({ text: line }));
+            result.history.forEach((line) => {
+              if (typeof line === "string") {
+                newHistory.push({ text: line });
+              } else {
+                newHistory.push(line);
+              }
+            });
           }
+
           setFileSystem(result.fileSystem);
           setCurrentDir(result.currentDir);
           setUserPrompt(result.userPrompt);
@@ -222,6 +280,8 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
 
           if (result.exit) {
             setLoggedIn(false);
+            setFileSystem(null);
+            setIsFsLoaded(false);
             setIsTerminated(true);
             const creditLines = [
               { text: "[  OK  ] User session ended." },
@@ -255,19 +315,6 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
             return;
           }
 
-          if (result.deployment) {
-            const { slug, envContent } = result.deployment;
-            const envKey = `${userData.username || "user"}_portfolio_env`;
-            const slugKey = `${userData.username || "user"}_portfolio_slug`;
-
-            localStorage.setItem(envKey, envContent);
-            localStorage.setItem(slugKey, slug);
-
-            if (onDeploy) {
-              onDeploy(slug);
-            }
-          }
-
           newHistory.push({
             text: result.userPrompt,
             prompt: true,
@@ -278,18 +325,12 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
             text: `${loginPrompt}${input}`,
           };
           if (input === userData.username) {
-            const newFs = createFileSystem(userData);
-            setFileSystem(newFs);
-            setCurrentDir(homeDir);
-            setUserPrompt(initialPrompt);
+            setLoggedIn(true);
 
             newHistory = [
               newHistory[newHistory.length - 1],
               { text: `Welcome, ${userData.username}!` },
-              { text: userPrompt, prompt: true, type: "command" },
             ];
-
-            setLoggedIn(true);
           } else {
             newHistory.push({ text: "Login incorrect" });
             newHistory.push({ text: loginPrompt, prompt: true, type: "login" });
@@ -355,6 +396,7 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
           "help",
           "clear",
           "exit",
+          "reboot",
           "deploy-portfolio",
         ];
 
@@ -474,6 +516,7 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
   const showInlineInput =
     !isTerminated &&
     !isAnimating &&
+    !isBooting &&
     lastLine.prompt &&
     (lastLine.type === "command" || lastLine.type === "login");
 
@@ -499,30 +542,46 @@ function Terminal({ userData, skipBoot = false, onDeploy }) {
         onClick={focusInput}
         className="terminal-container"
       >
-        {history.map((line, index) => (
-          <div key={index} className="terminal-history-line">
-            <pre
-              className={line.type === "terminated" ? "terminated-text" : ""}
-            >
-              {line.text}
-            </pre>
-            {showInlineInput && index === history.length - 1 && (
-              <input
-                ref={inputRef}
-                type="text"
-                className="terminal-input"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleInput}
-                autoFocus
-                autoCapitalize="none"
-                autoComplete="off"
-                autoCorrect="off"
-                spellCheck="false"
-              />
-            )}
-          </div>
-        ))}
+        {history.map((line, index) => {
+          const isLink = line.type === "link";
+          return (
+            <div key={index} className="terminal-history-line">
+              {isLink ? (
+                <a
+                  href={line.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="terminal-link"
+                >
+                  {line.text}
+                </a>
+              ) : (
+                <pre
+                  className={
+                    line.type === "terminated" ? "terminated-text" : ""
+                  }
+                >
+                  {line.text}
+                </pre>
+              )}
+              {showInlineInput && index === history.length - 1 && (
+                <input
+                  ref={inputRef}
+                  type="text"
+                  className="terminal-input"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleInput}
+                  autoFocus
+                  autoCapitalize="none"
+                  autoComplete="off"
+                  autoCorrect="off"
+                  spellCheck="false"
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
     </>
   );

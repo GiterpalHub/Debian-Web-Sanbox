@@ -6,9 +6,7 @@ import {
   templateJS,
 } from "../data/portfolioTemplate.js";
 import "./PortfolioLoader.css";
-
-const APPS_SCRIPT_URL =
-  "https://script.google.com/macros/s/AKfycbw12aEYUyEtqkg4e-SIoapXH7go5MQFWNDEC_uT9-EIabcalh3LMotn7HSW-c_YfvDi/exec";
+import { APPS_SCRIPT_URL } from "../data/environment.js";
 
 const parseEnv = (envContent) => {
   const env = {};
