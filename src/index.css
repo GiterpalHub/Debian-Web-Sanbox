@@ -1,8 +1,13 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto+Mono:ital,wght@0,100..700;1,100..700&display=swap');
 
-:root{
-  --roboto-mono: font-family: "Roboto Mono", monospace;
+:root {
+  --roboto-mono: "Roboto Mono", monospace;
 }
+
+html, body {
+  overscroll-behavior-y: contain;
+}
+
 
 body {
   background-color: #0000aa;
@@ -48,7 +53,6 @@ body.terminal-mode {
   background: #ffffff;
   color: #000;
 }
-
 
 .installer-window {
   background-color: #bbbbbb;
@@ -184,11 +188,12 @@ body.terminal-mode {
 
 .terminal-container {
   width: 100%;
-  height: 96vh;
+  height: 100vh;
   overflow-y: auto;
   scrollbar-width: none;
-  padding: 5px 10px;
+  padding: 5px 10px 70px 10px;
   position: relative;
+  box-sizing: border-box;
 }
 
 .terminal-container::-webkit-scrollbar {
@@ -341,7 +346,14 @@ input.terminal-input {
     padding-top: 0;
   }
 
-  input.terminal-input{
+  input.terminal-input {
     padding-left: .55em;
   }
 }
+
+@media (hover: none) and (pointer: coarse) {
+  .installer-window {
+    margin-bottom: 70px;
+  }
+}
+

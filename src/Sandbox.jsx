@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import Terminal from "./components/Terminal.jsx";
 import PartitionMenu from "./components/PartitionMenu.jsx";
+import MobileControls from "./components/MobileControls.jsx";
+import "./components/MobileControls.css";
 import {
   installSteps,
   fullBootLines,
@@ -352,12 +354,15 @@ function Sanbox() {
 
   if (viewMode === "terminal") {
     return (
-      <Terminal
-        userData={userData}
-        startLoggedIn={startLoggedIn}
-        onDeploy={handleDeploy}
-        onFullReset={handleFullReset}
-      />
+      <>
+        <Terminal
+          userData={userData}
+          startLoggedIn={startLoggedIn}
+          onDeploy={handleDeploy}
+          onFullReset={handleFullReset}
+        />
+        <MobileControls />
+      </>
     );
   }
 

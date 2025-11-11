@@ -1,0 +1,60 @@
+:root {
+  height: 100dvh;
+}
+
+.mobile-controls {
+  display: none;
+}
+
+@media (max-width: 800px) {
+  .mobile-controls {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: env(safe-area-inset-bottom, 0);
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    padding: 5px;
+    gap: .5em;
+    box-sizing: border-box;
+    z-index: 2000;
+    -webkit-overflow-scrolling: touch;
+    background-color: rgba(0, 0, 0, 0.55);
+    backdrop-filter: blur(6px);
+    touch-action: manipulation;
+  }
+
+
+  .mobile-key-group {
+    display: flex;
+    gap: .5em;
+  }
+
+  .mobile-btn {
+    font-family: "Consolas", "Menlo", "Courier New", monospace;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #eeeeee;
+    background-color: #444;
+    border: none;
+    border-bottom: 2px solid #333;
+    border-radius: 5px;
+    padding: 9px 15px;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  .mobile-btn:active {
+    background-color: #666;
+    border-bottom: 2px solid #555;
+  }
+  
+  .mobile-btn.active {
+    background-color: #0000aa;
+    color: #ffffff;
+    border-bottom: 2px solid #000088;
+  }
+}
