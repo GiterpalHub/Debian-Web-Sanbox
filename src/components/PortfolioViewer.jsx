@@ -48,7 +48,7 @@ function PortfolioViewer({ username, slug, onExit }) {
         display: "flex",
         flexDirection: "column",
         width: "100%",
-        height: "100vh",
+        height: "100%", 
         backgroundColor: "#eee",
       }}
     >

@@ -95,7 +95,7 @@ function PublicPortfolio() {
       title="Portfolio Preview"
       style={{
         width: "100%",
-        height: "100vh",
+        height: "100%", 
         border: "none",
         backgroundColor: "#f4f4f9",
       }}

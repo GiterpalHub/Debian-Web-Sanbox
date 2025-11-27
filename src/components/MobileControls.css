@@ -1,5 +1,30 @@
-:root {
-  height: 100dvh;
+.mobile-btn {
+  font-family: "Consolas", "Menlo", "Courier New", monospace;
+  font-size: 1rem;
+  font-weight: bold;
+  color: #eeeeee;
+  background-color: #444;
+  border: none;
+  border-bottom: 2px solid #333;
+  border-radius: 5px;
+  padding: 9px 15px;
+  min-width: 50px;
+  text-align: center;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.mobile-btn:active {
+  background-color: #666;
+  border-bottom: 2px solid #555;
+  transform: translateY(1px);
+}
+
+.mobile-btn.active {
+  background-color: #0000aa;
+  color: #ffffff;
+  border-bottom: 2px solid #000088;
 }
 
 .mobile-controls {
@@ -8,53 +33,33 @@
 
 @media (max-width: 800px) {
   .mobile-controls {
-    position: fixed;
-    left: 0;
-    right: 0;
-    bottom: env(safe-area-inset-bottom, 0);
+    
     display: flex;
+    width: 100%;
+    flex-shrink: 0;
+    
+    
     flex-wrap: nowrap;
     overflow-x: auto;
     overflow-y: hidden;
     white-space: nowrap;
     padding: 5px;
-    gap: .5em;
+    gap: 0.5em;
     box-sizing: border-box;
-    z-index: 2000;
-    -webkit-overflow-scrolling: touch;
-    background-color: rgba(0, 0, 0, 0.55);
+    
+    
+    background-color: rgba(0, 0, 0, 0.85);
     backdrop-filter: blur(6px);
-    touch-action: manipulation;
+    -webkit-backdrop-filter: blur(6px);
+    z-index: 2000;
+    
+    
+    -webkit-overflow-scrolling: touch;
   }
-
 
   .mobile-key-group {
     display: flex;
-    gap: .5em;
-  }
-
-  .mobile-btn {
-    font-family: "Consolas", "Menlo", "Courier New", monospace;
-    font-size: 1rem;
-    font-weight: bold;
-    color: #eeeeee;
-    background-color: #444;
-    border: none;
-    border-bottom: 2px solid #333;
-    border-radius: 5px;
-    padding: 9px 15px;
-    min-width: 50px;
-    text-align: center;
-  }
-
-  .mobile-btn:active {
-    background-color: #666;
-    border-bottom: 2px solid #555;
-  }
-  
-  .mobile-btn.active {
-    background-color: #0000aa;
-    color: #ffffff;
-    border-bottom: 2px solid #000088;
+    gap: 0.5em;
+    flex-shrink: 0;
   }
 }

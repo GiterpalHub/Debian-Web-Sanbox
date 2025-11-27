@@ -2,25 +2,28 @@
 
 :root {
   --roboto-mono: "Roboto Mono", monospace;
+  --app-height: 100vh;
 }
 
 html, body {
   overscroll-behavior-y: contain;
+  margin: 0;
+  padding: 0;
+  width: 100%;
 }
-
 
 body {
   background-color: #0000aa;
   color: #eeeeee;
   font-family: "Consolas", "Menlo", "Courier New", monospace;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-  margin: 0;
+  height: var(--app-height);
+  overflow: hidden; 
   font-size: 1.1rem;
   scrollbar-width: none;
   user-select: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 ::-webkit-scrollbar {
@@ -29,7 +32,6 @@ body {
 
 body.terminal-mode {
   background-color: #0d0d0d;
-  padding: 0;
   align-items: flex-start;
   justify-content: flex-start;
   color: #d0d0d0;
@@ -38,10 +40,13 @@ body.terminal-mode {
 
 #root {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
-  height: 100%;
+  height: 100%; 
+  position: relative; 
+  overflow: hidden;
 }
 
 ::selection {
@@ -188,7 +193,7 @@ body.terminal-mode {
 
 .terminal-container {
   width: 100%;
-  height: 100vh;
+  height: 100%; 
   overflow-y: auto;
   scrollbar-width: none;
   padding: 5px 10px 70px 10px;
@@ -239,7 +244,7 @@ input.terminal-input {
   background-color: #00002a;
   color: #ffffff;
   width: 100%;
-  height: 100vh;
+  height: 100%; 
   display: flex;
   flex-direction: column;
   font-family: "Consolas", "Menlo", "Courier New", monospace;
@@ -356,4 +361,3 @@ input.terminal-input {
     margin-bottom: 70px;
   }
 }
-

@@ -10,7 +10,6 @@ function MobileControls() {
     return () => window.removeEventListener("ctrl-toggle", handler);
   }, []);
 
-  // Helper to find the active input
   const getTarget = () => {
     return document.getElementById("terminal-input") || document.getElementById("editor-textarea");
   };
@@ -18,7 +17,6 @@ function MobileControls() {
   const dispatchKeyEvent = (key, ctrl = false) => {
     const target = getTarget() || window;
 
-    // Explicitly focus the input to keep the keyboard open
     if (target.focus) target.focus();
 
     const event = new KeyboardEvent("keydown", {
@@ -40,8 +38,7 @@ function MobileControls() {
     if (key === "Control") {
       const next = !isCtrlActive;
       window.dispatchEvent(new CustomEvent("ctrl-toggle", { detail: next }));
-      
-      // Explicitly focus input when Ctrl is clicked too
+
       const target = getTarget();
       if (target && target.focus) target.focus();
     } else {
@@ -49,25 +46,6 @@ function MobileControls() {
     }
   };
 
-  useEffect(() => {
-    const bar = document.querySelector(".mobile-controls");
-    if (!window.visualViewport || !bar) return;
-
-    const update = () => {
-      const h = window.innerHeight - window.visualViewport.height;
-      bar.style.transform = h > 0 ? `translateY(-${h}px)` : "translateY(0)";
-    };
-
-    window.visualViewport.addEventListener("resize", update);
-    window.visualViewport.addEventListener("scroll", update);
-    update();
-    return () => {
-      window.visualViewport.removeEventListener("resize", update);
-      window.visualViewport.removeEventListener("scroll", update);
-    };
-  }, []);
-
-  // Helper to handle pointer up events (fires on release, allowing scroll to cancel it)
   const handlePointerUp = (e, key) => {
     e.preventDefault();
     handleKey(key);
@@ -82,7 +60,7 @@ function MobileControls() {
         >
           Ctrl
         </button>
-        
+
         {!isCtrlActive ? (
           <>
             <button className="mobile-btn" onPointerUp={(e) => handlePointerUp(e, "Tab")}>Tab</button>

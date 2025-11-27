@@ -44,7 +44,7 @@ function BootScreen({ onBootComplete }) {
         backgroundColor: "#0d0d0d",
         color: "#d0d0d0",
         fontFamily: "monospace",
-        height: "100vh",
+        height: "100%", 
         width: "100%",
       }}
     >
