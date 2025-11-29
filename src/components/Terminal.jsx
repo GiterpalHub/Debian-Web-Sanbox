@@ -1,11 +1,24 @@
 import { useState, useEffect, useRef } from "react";
-import { fullBootLines } from "../data/installData.js";
 import Editor from "./Editor.jsx";
-import { processCommand, setFsNode, getDirNode, resolvePath, createFileSystem } from "../utils/commandLogic.js";
-import { BOOT_DELAY_MS, EXIT_DELAY_MS, CHALLENGE_KEY, FILESYSTEM_KEY_PREFIX } from "../data/environment.js";
-import { getInitialChallengeTasks, checkChallengeProgress } from "../data/challengeData.js";
+import {
+  processCommand,
+  setFsNode,
+  getDirNode,
+  resolvePath,
+  createFileSystem,
+} from "../utils/commandLogic.js";
+import {
+  BOOT_DELAY_MS,
+  EXIT_DELAY_MS,
+  CHALLENGE_KEY,
+  FILESYSTEM_KEY_PREFIX,
+} from "../data/environment.js";
+import {
+  getInitialChallengeTasks,
+  checkChallengeProgress,
+} from "../data/challengeData.js";
 
-function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
+function Terminal({ userData, startLoggedIn, onFullReset }) {
   const [history, setHistory] = useState([]);
   const [input, setInput] = useState("");
   const [loggedIn, setLoggedIn] = useState(startLoggedIn);
@@ -14,14 +27,22 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
   const [fileSystem, setFileSystem] = useState(null);
   const [isFsLoaded, setIsFsLoaded] = useState(false);
   const [currentDir, setCurrentDir] = useState("/");
-  const [editorState, setEditorState] = useState({ mode: "none", filePath: "", content: "" });
+  const [editorState, setEditorState] = useState({
+    mode: "none",
+    filePath: "",
+    content: "",
+  });
   const [isChallengeMode, setIsChallengeMode] = useState(false);
   const homeDir = `/home/${userData.username || "user"}`;
-  const [challengeTasks, setChallengeTasks] = useState(getInitialChallengeTasks(homeDir));
+  const [challengeTasks, setChallengeTasks] = useState(
+    getInitialChallengeTasks(homeDir)
+  );
   const [commandHistory, setCommandHistory] = useState([]);
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [isAnimating, setIsAnimating] = useState(false);
-  const initialPrompt = `${userData.username || "user"}@${userData.hostname || "debian"}:~$ `;
+  const initialPrompt = `${userData.username || "user"}@${
+    userData.hostname || "debian"
+  }:~$ `;
   const [userPrompt, setUserPrompt] = useState(initialPrompt);
   const inputRef = useRef(null);
   const terminalRef = useRef(null);
@@ -30,7 +51,7 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
   const [isCtrlActiveGlobal, setIsCtrlActiveGlobal] = useState(false);
 
   useEffect(() => {
-    const handler = e => setIsCtrlActiveGlobal(e.detail);
+    const handler = (e) => setIsCtrlActiveGlobal(e.detail);
     window.addEventListener("ctrl-toggle", handler);
     return () => window.removeEventListener("ctrl-toggle", handler);
   }, []);
@@ -43,7 +64,13 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
       e.preventDefault();
       const c = e.data?.toLowerCase();
       if (!c) return;
-      const event = new KeyboardEvent("keydown", { key: c, code: c, ctrlKey: true, bubbles: true, cancelable: true });
+      const event = new KeyboardEvent("keydown", {
+        key: c,
+        code: c,
+        ctrlKey: true,
+        bubbles: true,
+        cancelable: true,
+      });
       el.dispatchEvent(event);
       window.dispatchEvent(event);
       window.dispatchEvent(new CustomEvent("ctrl-toggle", { detail: false }));
@@ -56,7 +83,7 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
     if (startLoggedIn) {
       setHistory([
         { text: "Thanks for attending this workshop by HIMA TRPL" },
-        { text: "Welcome back to Debian GNU/Linux 12 (bookworm)!" }
+        { text: "Welcome back to Debian GNU/Linux 12 (bookworm)!" },
       ]);
       setIsBooting(false);
       return;
@@ -64,7 +91,7 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
       setHistory([
         { text: "Thanks for attending this workshop by HIMA TRPL" },
         { text: "Welcome to Debian GNU/Linux 12 (bookworm)!" },
-        { text: "debian login: ", prompt: true, type: "login" }
+        { text: "debian login: ", prompt: true, type: "login" },
       ]);
       setIsBooting(false);
     }
@@ -92,7 +119,10 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
   useEffect(() => {
     if (isFsLoaded && loggedIn && !isAnimating) {
       if (history.length === 0 || !history[history.length - 1].prompt) {
-        setHistory(prev => [...prev, { text: userPrompt, prompt: true, type: "command" }]);
+        setHistory((prev) => [
+          ...prev,
+          { text: userPrompt, prompt: true, type: "command" },
+        ]);
       }
     }
   }, [isFsLoaded, loggedIn, userPrompt, history, isAnimating]);
@@ -102,7 +132,8 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
   }, [isBooting, editorState, isFsLoaded]);
 
   useEffect(() => {
-    if (terminalRef.current) terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+    if (terminalRef.current)
+      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
   }, [history]);
 
   useEffect(() => {
@@ -114,17 +145,17 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
         return;
       }
       e.preventDefault();
-      const pastedText = e.clipboardData.getData('text/plain');
-      setInput(prevInput => prevInput + pastedText);
+      const pastedText = e.clipboardData.getData("text/plain");
+      setInput((prevInput) => prevInput + pastedText);
     };
 
     if (inputEl) {
-      inputEl.addEventListener('paste', handlePaste);
+      inputEl.addEventListener("paste", handlePaste);
     }
 
     return () => {
       if (inputEl) {
-        inputEl.removeEventListener('paste', handlePaste);
+        inputEl.removeEventListener("paste", handlePaste);
       }
     };
   }, [isAnimating, history]);
@@ -134,132 +165,163 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
     let i = 0;
     const interval = setInterval(() => {
       if (i < lines.length) {
-        setHistory(prev => [...prev, { text: lines[i] }]);
+        setHistory((prev) => [...prev, { text: lines[i] }]);
         i++;
       } else {
         clearInterval(interval);
         setIsAnimating(false);
-        setHistory(prev => [...prev, { text: finalPrompt, prompt: true, type: "command" }]);
+        setHistory((prev) => [
+          ...prev,
+          { text: finalPrompt, prompt: true, type: "command" },
+        ]);
       }
     }, 50);
   };
 
   const executeCommand = (cmdStr) => {
-        const t = cmdStr.trim();
-        if (t !== "") setCommandHistory(prev => [...prev, t]);
-        setHistoryIndex(-1);
-        let newHistory = [...history];
-        const [cmd, ...args] = t.split(" ");
-        if (loggedIn) {
-          if (!isFsLoaded) return;
-          newHistory[newHistory.length - 1] = { text: `${userPrompt}${cmdStr}` };
-          const hasCompleted = localStorage.getItem(CHALLENGE_KEY) === "true";
-          const isForce = args.includes("--force");
-          if (cmd === "chall" && hasCompleted && !isForce) {
-            newHistory.push({ text: "You finished this chall! If u need play again add --force." });
-            newHistory.push({ text: "ex: chall --force" });
-            newHistory.push({ text: userPrompt, prompt: true, type: "command" });
-            setHistory(newHistory);
-            setInput("");
-            return;
-          }
-          if (cmd === "chall" && isForce) localStorage.removeItem(CHALLENGE_KEY);
-          const state = { fileSystem, currentDir, homeDir, userData, userPrompt };
-          const result = processCommand(cmd, args, state);
-          if (result.reboot) {
-            setLoggedIn(false);
-            setFileSystem(null);
-            setIsFsLoaded(false);
-            newHistory.push({ text: "reboot: System is rebooting..." });
-            setHistory(newHistory);
-            setInput("");
-            setTimeout(() => {
-              setHistory(prev => [...prev, { text: " " }, { text: "Welcome to Debian GNU/Linux 12 (bookworm)!" }, { text: "debian login: ", prompt: true, type: "login" }]);
-            }, 1500);
-            window.location.reload();
-            return;
-          }
-          if (result.fullReset) {
-            onFullReset();
-            return;
-          }
-          if (result.linesToAnimate && result.linesToAnimate.length > 0) {
-            setHistory(newHistory);
-            setInput("");
-            runAnimatedCommand(result.linesToAnimate, result.userPrompt);
-            setFileSystem(result.fileSystem);
-            return;
-          }
-          if (result.history.length > 0) {
-            result.history.forEach(line => newHistory.push(typeof line === "string" ? { text: line } : line));
-          }
-          setFileSystem(result.fileSystem);
-          setCurrentDir(result.currentDir);
-          setUserPrompt(result.userPrompt);
-          if (result.startChallenge) {
-            setIsChallengeMode(true);
-            localStorage.removeItem(CHALLENGE_KEY);
-            setChallengeTasks(getInitialChallengeTasks(homeDir));
-          }
-          const p = checkChallengeProgress(challengeTasks, result.fileSystem, result.currentDir, homeDir);
-          setChallengeTasks(p.newTasks);
-          if (p.justCompleted) {
-            newHistory.push({ text: "----------------------------------------" });
-            newHistory.push({ text: "脂 CHALLENGE COMPLETE! Great job! 脂" });
-            newHistory.push({ text: "----------------------------------------" });
-            localStorage.setItem(CHALLENGE_KEY, "true");
-            setIsChallengeMode(false);
-            setChallengeTasks(getInitialChallengeTasks(homeDir));
-          }
-          if (result.clear) {
-            setHistory([{ text: result.userPrompt, prompt: true, type: "command" }]);
-            setInput("");
-            return;
-          }
-          if (result.exit) {
-            setLoggedIn(false);
-            setFileSystem(null);
-            setIsFsLoaded(false);
-            setIsTerminated(true);
-            const lines = [
-              { text: "[  OK  ] User session ended." },
-              { text: "Connection to debian closed." },
-              { text: " " },
-              { text: "This project was made by Dzadafa and Danipion under HIMA TRPL." },
-              { text: "[ Process terminated. Refresh the page to restart. ]", type: "terminated" }
-            ];
-            const print = (i) => {
-              if (i >= lines.length) return;
-              setTimeout(() => {
-                setHistory(prev => [...prev, lines[i]]);
-                print(i + 1);
-              }, EXIT_DELAY_MS);
-            };
-            print(0);
-            setHistory(newHistory);
-            setInput("");
-            return;
-          }
-          if (result.editorState) {
-            setEditorState(result.editorState);
-            setHistory(newHistory);
-            setInput("");
-            return;
-          }
-          newHistory.push({ text: result.userPrompt, prompt: true, type: "command" });
-        } else {
-          newHistory[newHistory.length - 1] = { text: `${loginPrompt}${cmdStr}` };
-          if (cmdStr === userData.username) {
-            setLoggedIn(true);
-            newHistory = [newHistory[newHistory.length - 1], { text: `Welcome, ${userData.username}!` }];
-          } else {
-            newHistory.push({ text: "Login incorrect" });
-            newHistory.push({ text: loginPrompt, prompt: true, type: "login" });
-          }
-        }
+    const t = cmdStr.trim();
+    if (t !== "") setCommandHistory((prev) => [...prev, t]);
+    setHistoryIndex(-1);
+    let newHistory = [...history];
+    const [cmd, ...args] = t.split(" ");
+    if (loggedIn) {
+      if (!isFsLoaded) return;
+      newHistory[newHistory.length - 1] = { text: `${userPrompt}${cmdStr}` };
+      const hasCompleted = localStorage.getItem(CHALLENGE_KEY) === "true";
+      const isForce = args.includes("--force");
+      if (cmd === "chall" && hasCompleted && !isForce) {
+        newHistory.push({
+          text: "You finished this chall! If u need play again add --force.",
+        });
+        newHistory.push({ text: "ex: chall --force" });
+        newHistory.push({ text: userPrompt, prompt: true, type: "command" });
         setHistory(newHistory);
         setInput("");
-  }
+        return;
+      }
+      if (cmd === "chall" && isForce) localStorage.removeItem(CHALLENGE_KEY);
+      const state = { fileSystem, currentDir, homeDir, userData, userPrompt };
+      const result = processCommand(cmd, args, state);
+      if (result.reboot) {
+        setLoggedIn(false);
+        setFileSystem(null);
+        setIsFsLoaded(false);
+        newHistory.push({ text: "reboot: System is rebooting..." });
+        setHistory(newHistory);
+        setInput("");
+        setTimeout(() => {
+          setHistory((prev) => [
+            ...prev,
+            { text: " " },
+            { text: "Welcome to Debian GNU/Linux 12 (bookworm)!" },
+            { text: "debian login: ", prompt: true, type: "login" },
+          ]);
+        }, 1500);
+        window.location.reload();
+        return;
+      }
+      if (result.fullReset) {
+        onFullReset();
+        return;
+      }
+      if (result.linesToAnimate && result.linesToAnimate.length > 0) {
+        setHistory(newHistory);
+        setInput("");
+        runAnimatedCommand(result.linesToAnimate, result.userPrompt);
+        setFileSystem(result.fileSystem);
+        return;
+      }
+      if (result.history.length > 0) {
+        result.history.forEach((line) =>
+          newHistory.push(typeof line === "string" ? { text: line } : line)
+        );
+      }
+      setFileSystem(result.fileSystem);
+      setCurrentDir(result.currentDir);
+      setUserPrompt(result.userPrompt);
+      if (result.startChallenge) {
+        setIsChallengeMode(true);
+        localStorage.removeItem(CHALLENGE_KEY);
+        setChallengeTasks(getInitialChallengeTasks(homeDir));
+      }
+      const p = checkChallengeProgress(
+        challengeTasks,
+        result.fileSystem,
+        result.currentDir,
+        homeDir
+      );
+      setChallengeTasks(p.newTasks);
+      if (p.justCompleted) {
+        newHistory.push({ text: "----------------------------------------" });
+        newHistory.push({ text: "脂 CHALLENGE COMPLETE! Great job! 脂" });
+        newHistory.push({ text: "----------------------------------------" });
+        localStorage.setItem(CHALLENGE_KEY, "true");
+        setIsChallengeMode(false);
+        setChallengeTasks(getInitialChallengeTasks(homeDir));
+      }
+      if (result.clear) {
+        setHistory([
+          { text: result.userPrompt, prompt: true, type: "command" },
+        ]);
+        setInput("");
+        return;
+      }
+      if (result.exit) {
+        setLoggedIn(false);
+        setFileSystem(null);
+        setIsFsLoaded(false);
+        setIsTerminated(true);
+        const lines = [
+          { text: "[  OK  ] User session ended." },
+          { text: "Connection to debian closed." },
+          { text: " " },
+          {
+            text: "This project was made by Dzadafa and Danipion under HIMA TRPL.",
+          },
+          {
+            text: "[ Process terminated. Refresh the page to restart. ]",
+            type: "terminated",
+          },
+        ];
+        const print = (i) => {
+          if (i >= lines.length) return;
+          setTimeout(() => {
+            setHistory((prev) => [...prev, lines[i]]);
+            print(i + 1);
+          }, EXIT_DELAY_MS);
+        };
+        print(0);
+        setHistory(newHistory);
+        setInput("");
+        return;
+      }
+      if (result.editorState) {
+        setEditorState(result.editorState);
+        setHistory(newHistory);
+        setInput("");
+        return;
+      }
+      newHistory.push({
+        text: result.userPrompt,
+        prompt: true,
+        type: "command",
+      });
+    } else {
+      newHistory[newHistory.length - 1] = { text: `${loginPrompt}${cmdStr}` };
+      if (cmdStr === userData.username) {
+        setLoggedIn(true);
+        newHistory = [
+          newHistory[newHistory.length - 1],
+          { text: `Welcome, ${userData.username}!` },
+        ];
+      } else {
+        newHistory.push({ text: "Login incorrect" });
+        newHistory.push({ text: loginPrompt, prompt: true, type: "login" });
+      }
+    }
+    setHistory(newHistory);
+    setInput("");
+  };
 
   const handleInput = (e) => {
     if (isAnimating) return;
@@ -272,7 +334,10 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
       case "ArrowUp": {
         e.preventDefault();
         if (commandHistory.length > 0) {
-          let index = historyIndex === -1 ? commandHistory.length - 1 : Math.max(0, historyIndex - 1);
+          let index =
+            historyIndex === -1
+              ? commandHistory.length - 1
+              : Math.max(0, historyIndex - 1);
           setHistoryIndex(index);
           setInput(commandHistory[index]);
         }
@@ -295,7 +360,29 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
       case "Tab": {
         e.preventDefault();
         if (!loggedIn) break;
-        const all = ["ls","cd","pwd","mkdir","touch","cp","mv","rm","rmdir","nano","vi","cat","less","chmod","chown","apt","help","clear","exit","reboot","deploy-portfolio"];
+        const all = [
+          "ls",
+          "cd",
+          "pwd",
+          "mkdir",
+          "touch",
+          "cp",
+          "mv",
+          "rm",
+          "rmdir",
+          "nano",
+          "vi",
+          "cat",
+          "less",
+          "chmod",
+          "chown",
+          "apt",
+          "help",
+          "clear",
+          "exit",
+          "reboot",
+          "deploy-portfolio",
+        ];
         const parts = input.split(" ");
         const last = parts[parts.length - 1];
         const isCmd = parts.length === 1;
@@ -310,7 +397,7 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
           const node = getDirNode(target, fileSystem);
           if (node && typeof node === "object") list = Object.keys(node);
         }
-        const matches = list.filter(i => i.startsWith(partial));
+        const matches = list.filter((i) => i.startsWith(partial));
         if (matches.length === 1) {
           parts[parts.length - 1] = prefix + matches[0];
           const nodePath = resolvePath(currentDir, prefix + matches[0]);
@@ -326,46 +413,49 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
         }
         break;
       }
-      case 'C':
-      case 'c':
+      case "C":
+      case "c":
         if (e.ctrlKey) {
           e.preventDefault();
           let newHistory = [...history];
-          newHistory[newHistory.length - 1] = { text: `${userPrompt}${input}^C` };
+          newHistory[newHistory.length - 1] = {
+            text: `${userPrompt}${input}^C`,
+          };
           newHistory.push({ text: userPrompt, prompt: true, type: "command" });
           setHistory(newHistory);
           setInput("");
         }
         break;
-      case 'V':
-      case 'v':
+      case "V":
+      case "v":
         if (e.ctrlKey) {
           e.preventDefault();
           if (navigator.clipboard && navigator.clipboard.readText) {
-             navigator.clipboard.readText()
-               .then(text => setInput(prev => prev + text))
-               .catch(err => console.error("Clipboard read failed:", err));
+            navigator.clipboard
+              .readText()
+              .then((text) => setInput((prev) => prev + text))
+              .catch((err) => console.error("Clipboard read failed:", err));
           }
         }
         break;
-      case 'L':
-      case 'l':
+      case "L":
+      case "l":
         if (e.ctrlKey) {
           e.preventDefault();
           setHistory([{ text: userPrompt, prompt: true, type: "command" }]);
         }
         break;
-      case 'D':
-      case 'd':
+      case "D":
+      case "d":
         if (e.ctrlKey) {
           e.preventDefault();
           if (input === "") {
-             executeCommand("exit");
+            executeCommand("exit");
           }
         }
         break;
-      case 'U':
-      case 'u':
+      case "U":
+      case "u":
         if (e.ctrlKey) {
           e.preventDefault();
           setInput("");
@@ -382,7 +472,12 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
     setFileSystem(newFs);
     const env = "/var/www/html/.env";
     let newHistory = [...history, { text: `File "${path}" saved.` }];
-    const p = checkChallengeProgress(challengeTasks, newFs, currentDir, homeDir);
+    const p = checkChallengeProgress(
+      challengeTasks,
+      newFs,
+      currentDir,
+      homeDir
+    );
     setChallengeTasks(p.newTasks);
     if (p.justCompleted) {
       newHistory.push({ text: "----------------------------------------" });
@@ -392,7 +487,10 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
       setIsChallengeMode(false);
       setChallengeTasks(getInitialChallengeTasks(homeDir));
     }
-    if (editorState.filePath === env) newHistory.push({ text: "Hint: Run 'deploy-portfolio' to publish your changes." });
+    if (editorState.filePath === env)
+      newHistory.push({
+        text: "Hint: Run 'deploy-portfolio' to publish your changes.",
+      });
     newHistory.push({ text: userPrompt, prompt: true, type: "command" });
     setHistory(newHistory);
     setEditorState({ mode: "none", filePath: "", content: "" });
@@ -405,11 +503,23 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
   };
 
   if (editorState.mode !== "none") {
-    return <Editor mode={editorState.mode} filePath={editorState.filePath} initialContent={editorState.content} onExit={handleEditorExit} />;
+    return (
+      <Editor
+        mode={editorState.mode}
+        filePath={editorState.filePath}
+        initialContent={editorState.content}
+        onExit={handleEditorExit}
+      />
+    );
   }
 
   const lastLine = history.length > 0 ? history[history.length - 1] : {};
-  const showInline = !isTerminated && !isAnimating && !isBooting && lastLine.prompt && (lastLine.type === "command" || lastLine.type === "login");
+  const showInline =
+    !isTerminated &&
+    !isAnimating &&
+    !isBooting &&
+    lastLine.prompt &&
+    (lastLine.type === "command" || lastLine.type === "login");
 
   return (
     <>
@@ -417,21 +527,43 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
         <div className="challenge-card">
           <h4>Workshop Challenge</h4>
           <ul className="challenge-list">
-            {challengeTasks.map(task => (
-              <li key={task.id} className={`task-item ${task.completed ? "completed" : ""}`}>{task.text}</li>
+            {challengeTasks.map((task) => (
+              <li
+                key={task.id}
+                className={`task-item ${task.completed ? "completed" : ""}`}
+              >
+                {task.text}
+              </li>
             ))}
           </ul>
         </div>
       )}
-      <div ref={terminalRef} onClick={focusInput} className="terminal-container">
+      <div
+        ref={terminalRef}
+        onClick={focusInput}
+        className="terminal-container"
+      >
         {history.map((line, i) => {
           const isLink = line.type === "link";
           return (
             <div key={i} className="terminal-history-line">
               {isLink ? (
-                <a href={line.url} target="_blank" rel="noopener noreferrer" className="terminal-link">{line.text}</a>
+                <a
+                  href={line.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="terminal-link"
+                >
+                  {line.text}
+                </a>
               ) : (
-                <pre className={line.type === "terminated" ? "terminated-text" : ""}>{line.text}</pre>
+                <pre
+                  className={
+                    line.type === "terminated" ? "terminated-text" : ""
+                  }
+                >
+                  {line.text}
+                </pre>
               )}
               {showInline && i === history.length - 1 && (
                 <input
@@ -441,7 +573,7 @@ function Terminal({ userData, startLoggedIn, onDeploy, onFullReset }) {
                   id="terminal-input"
                   className="terminal-input"
                   value={input}
-                  onChange={e => setInput(e.target.value)}
+                  onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleInput}
                   autoFocus
                   autoCapitalize="none"

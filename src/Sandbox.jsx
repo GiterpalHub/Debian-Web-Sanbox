@@ -44,7 +44,7 @@ function BootScreen({ onBootComplete }) {
         backgroundColor: "#0d0d0d",
         color: "#d0d0d0",
         fontFamily: "monospace",
-        height: "100%", 
+        height: "100%",
         width: "100%",
       }}
     >
@@ -72,7 +72,7 @@ function Sanbox() {
   const [isPartitioned, setIsPartitioned] = useState(false);
 
   const [viewMode, setViewMode] = useState("loading");
-  const [portfolioSlug, setPortfolioSlug] = useState("");
+  const [_, setPortfolioSlug] = useState("");
   const [startLoggedIn, setStartLoggedIn] = useState(false);
 
   const navigate = useNavigate();
@@ -145,6 +145,7 @@ function Sanbox() {
 
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentStep, step]);
 
   useEffect(() => {

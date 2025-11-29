@@ -48,6 +48,7 @@ export const getDirNode = (path, fs) => {
     }
     return node;
   } catch (e) {
+    console.error(e);
     return null;
   }
 };
@@ -465,6 +466,7 @@ export const processCommand = (command, args, state) => {
           `chmod: cannot access '${file}': No such file or directory`
         );
       } else {
+        ("");
       }
       break;
     }
@@ -483,6 +485,7 @@ export const processCommand = (command, args, state) => {
           `chown: cannot access '${file}': No such file or directory`
         );
       } else {
+        ("");
       }
       break;
     }
